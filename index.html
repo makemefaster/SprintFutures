@@ -102,12 +102,44 @@
         <br>
         <small>Race Director Suite v1.0</small>
     </div>
-
+<div style="
+    margin-top: 50px; 
+    padding: 30px; 
+    text-align: center; 
+    border-top: 1px solid #ddd; 
+    background: #fff;
+    padding-bottom: 80px; /* Extra space for scrolling on phone */
+">
+    <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+        Built for the love of Track Cycling.<br>
+        If you find this useful, consider buying the developer a drink! 🍻
+    </p>
+    
+    <a href="https://www.buymeacoffee.com/MichaelHanreck" target="_blank" style="
+        background: #FFDD00; 
+        color: #000; 
+        text-decoration: none; 
+        padding: 12px 25px; 
+        border-radius: 30px; 
+        font-weight: bold; 
+        font-family: 'Segoe UI', sans-serif;
+        border: 2px solid #000; 
+        box-shadow: 3px 3px 0px rgba(0,0,0,1); 
+        display: inline-block;
+        transition: transform 0.1s;
+    " onmousedown="this.style.transform='translate(2px, 2px)'; this.style.boxShadow='1px 1px 0px black'" 
+      onmouseup="this.style.transform='translate(0, 0)'; this.style.boxShadow='3px 3px 0px black'">
+        🍺 Buy me a Beer
+    </a>
+    
+    <div style="margin-top: 25px; font-size: 0.7em; color: #bbb;">
+        &copy; 2024 Frequency Cycleworks Race Suite
+    </div>
+</div>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js');
         }
     </script>
-
 </body>
 </html>
