@@ -186,17 +186,47 @@
         save(); renderHeats();
     }
 
-    window.finishRound = () => {
+   window.finishRound = () => {
+        // 1. Validation
         for(let h of heats) if(h.res.length!=h.riders.length) return alert("Finish all heats");
-        if(roundCounter>=3) { showPhase('phase-standings'); renderResults(); return; }
         
+        // 2. Check if we are done (Sprint usually 3 rounds: Quarters, Semis, Finals)
+        // If current round is the Total, then we are finished.
+        if(roundCounter >= 3) { 
+            roundCounter++; // Lock it
+            save();
+            showPhase('phase-standings'); 
+            renderResults(); 
+            return; 
+        }
+        
+        // 3. Logic: Winner Up, Loser Down
         let next = heats.map(()=>[]);
         heats.forEach((h,i) => {
-            let w=h.res[0], l=h.res[h.res.length-1];
-            i===0 ? next[0].push(w) : next[i-1].push(w);
-            i===heats.length-1 ? next[i].push(l) : next[i+1].push(l);
-            for(let k=1; k<h.res.length-1; k++) next[i].push(h.res[k]);
+            let w=h.res[0];
+            let l=h.res[h.res.length-1];
+            
+            // Winner moves to i-1 (Limit 0)
+            i===0 ? next[0].push(riders.find(r=>r.id==w)) : next[i-1].push(riders.find(r=>r.id==w));
+            
+            // Loser moves to i+1 (Limit Length-1)
+            i===heats.length-1 ? next[i].push(riders.find(r=>r.id==l)) : next[i+1].push(riders.find(r=>r.id==l));
+            
+            // Middle riders stay (if 3-up heat)
+            for(let k=1; k<h.res.length-1; k++) next[i].push(riders.find(r=>r.id==h.res[k]));
         });
+        
+        // 4. Rebuild
+        heats = next.map((rs,i) => ({
+            name: heats[i].name, 
+            riders: rs, 
+            res:[]
+        }));
+        
+        roundCounter++; 
+        save(); 
+        renderHeats();
+    }
         
         // Rebuild objects
         heats = next.map((ids,i) => ({
