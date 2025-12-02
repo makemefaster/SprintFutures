@@ -78,6 +78,9 @@
     </div>
     <p style="color:#666; font-size:0.9em;">Click riders in finish order (1st to Last).</p>
     <div id="heatsContainer" class="heat-container"></div>
+    <div style="text-align:right; margin-bottom:10px;">
+    <button class="btn btn-clear" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
+</div>
     <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT & NEXT ROUND</button>
 </div>
 
@@ -247,30 +250,9 @@
         roundCounter++; save(); renderHeats();
     }
 
-    function renderResults() {
-        const tb = document.getElementById('resultsBody'); tb.innerHTML='';
-        let absoluteRank = 1;
-        
-        // Rankings are linear based on Heat A, then Heat B, etc.
-        heats.forEach(h => {
-            h.res.forEach((rid, idx) => {
-                let r = riders.find(x=>x.id==rid);
-                let rankClass = '';
-                if(absoluteRank === 1) rankClass = 'rank-1';
-                else if(absoluteRank === 2) rankClass = 'rank-2';
-                else if(absoluteRank === 3) rankClass = 'rank-3';
-
-                tb.innerHTML += `<tr class="${rankClass}">
-                    <td>${absoluteRank++}</td>
-                    <td><strong>${r.bib || '-'}</strong></td>
-                    <td>${r.name}</td>
-                    <td>${r.cat || '-'}</td>
-                    <td>${r.time}s</td>
-                    <td>${h.name} - ${idx+1}${ordinal(idx+1)}</td>
-                </tr>`;
-            });
-        });
-    }
+    <div style="text-align:right; margin-bottom:10px;">
+    <button class="btn btn-clear" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
+</div>
 
     function ordinal(n) {
         const s = ["th", "st", "nd", "rd"];
