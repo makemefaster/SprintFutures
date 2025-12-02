@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Cycling Suite</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002366">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+        h1 { color: #002366; margin-bottom: 5px; }
+        p { color: #666; margin-bottom: 30px; }
+        
+        .menu-grid { display: grid; gap: 15px; }
+        
+        .app-btn {
+            display: block; text-decoration: none; padding: 20px; border-radius: 12px;
+            background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 8px solid #002366;
+            color: #333; font-weight: bold; font-size: 1.2rem; transition: transform 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .app-btn:active { transform: scale(0.98); }
+        .app-btn span { font-size: 1.5rem; }
+        
+        /* Different Colors for different tools */
+        .btn-sprint { border-color: #E30613; }
+        .btn-keirin { border-color: #002366; }
+        .btn-calc { border-color: #28a745; opacity: 0.6; } /* Grayed out for now */
+
+        .footer-legal { margin-top: 50px; font-size: 0.8rem; color: #888; border-top: 1px solid #ddd; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <img src="https://cdn-icons-png.flaticon.com/512/3063/3063207.png" width="80" style="margin-bottom:10px;">
+    <h1>Track Cycling Suite</h1>
+    <p>Select a tool to begin.</p>
+
+    <div class="menu-grid">
+        <a href="sprint.html" class="app-btn btn-sprint">
+            <div>🚴 Sprint Ladder</div>
+            <span>&rarr;</span>
+        </a>
+
+        <a href="keirin.html" class="app-btn btn-keirin">
+            <div>🏁 Keirin Ladder</div>
+            <span>&rarr;</span>
+        </a>
+
+        <div class="app-btn btn-calc" style="cursor: default;">
+            <div>⚙️ Gear Calc (Coming Soon)</div>
+            <span style="font-size:1rem;">🔒</span>
+        </div>
+    </div>
+
+    <div class="footer-legal">
+        &copy; 2024 Your Name/Organization. All Rights Reserved.<br>
+        Unauthorized duplication or commercial distribution prohibited.<br>
+        <br>
+        <small>Race Director Suite v1.0</small>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+
+</body>
+</html>
