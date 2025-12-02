@@ -81,6 +81,9 @@
     </div>
     <p style="font-size:0.9em; color:#666;">Click Winner (Green) then Loser (Red).</p>
     <div id="heatsContainer" class="heat-container"></div>
+    <div style="text-align:right; margin-bottom:10px;">
+    <button class="btn btn-clear" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
+</div>
     <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT & NEXT ROUND &rarr;</button>
 </div>
 
@@ -285,13 +288,50 @@
         roundCounter++; save(); renderHeats();
     }
 
+  // 1. New Function to force finish
+    window.endEventEarly = () => {
+        if(confirm("⚠ STOP RACING?\n\nThis will cancel remaining heats and generate final results based on the current seeding.")) {
+            save(true); // Save as finished
+            showPhase('phase-standings');
+            renderResults();
+        }
+    }
+
+    // 2. Updated Results Logic (Handles un-raced heats)
     function renderResults() {
-        const tb = document.getElementById('resultsBody'); tb.innerHTML='';
-        let rank=1;
-        heats.forEach(h => h.res.forEach(rid => {
-            let r = riders.find(x=>x.id==rid);
-            if(r) tb.innerHTML += `<tr><td>${rank++}</td><td>${r.bib}</td><td>${r.name}</td><td>${r.cat}</td><td>${r.time}</td></tr>`;
-        }));
+        const tb = document.getElementById('resultsBody'); 
+        tb.innerHTML='';
+        let absoluteRank = 1;
+
+        heats.forEach(h => {
+            // DECISION: Did they race?
+            let raced = (h.res && h.res.length === h.riders.length);
+            
+            // If raced, use results. If not, use Seeding (Qualifying Time)
+            let sortedRiders = [];
+            if (raced) {
+                sortedRiders = h.res.map(id => riders.find(r => r.id == id));
+            } else {
+                // Clone array and sort by time (Fastest = Higher Rank)
+                sortedRiders = [...h.riders].sort((a,b) => a.time - b.time);
+            }
+
+            sortedRiders.forEach((r, idx) => {
+                let rankClass = '';
+                if(absoluteRank === 1) rankClass = 'rank-1'; // Gold color class
+                
+                let finishText = raced ? `${h.name} - ${idx+1}${ordinal(idx+1)}` : `${h.name} (Seeded)`;
+
+                tb.innerHTML += `<tr class="${rankClass}">
+                    <td>${absoluteRank++}</td>
+                    <td>${r.bib || '-'}</td>
+                    <td>${r.name}</td>
+                    <td>${r.cat || '-'}</td>
+                    <td>${r.time}s</td>
+                    <td style="font-size:0.9em; color:${raced?'#333':'#E30613'}">${finishText}</td>
+                </tr>`;
+            });
+        });
     }
 
     function showPhase(id) {
