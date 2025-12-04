@@ -133,6 +133,7 @@
         let riders = [];
 
         function startSync() {
+            // Listen to the SHARED riders list
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 renderTable();
@@ -204,9 +205,8 @@
             });
         }
 
-        // --- FIXED LAUNCHER ---
         function launch(page) {
-            // Using window.location.href ensures we stay inside the current folder
+            // Updated to be relative-safe for GitHub Pages
             const url = new URL(page + '.html', window.location.href);
             url.searchParams.set('event', eventID);
             url.searchParams.set('auth', 'admin');
