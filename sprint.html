@@ -4,219 +4,286 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprint Ladder</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002366">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <style>
-        :root { --primary: #002366; --accent: #E30613; --bg: #f5f5f5; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom:80px; }
+        :root { --primary: #002366; --accent: #E30613; --bg: #f5f5f5; --card: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 80px; }
         
-        .nav-bar { display:flex; gap:10px; align-items:center; margin-bottom:20px; }
-        .home-btn { background:#ddd; padding:8px 15px; border-radius:4px; text-decoration:none; color:#333; font-weight:bold; }
+        /* 1. LAYOUT & NAV */
+        .nav-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .home-btn { text-decoration: none; background: #ddd; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: #333; }
+        .sponsor-mini { margin-bottom: 20px; padding: 10px; background: white; border-bottom: 4px solid #00d2ff; text-align: center; }
+
+        /* 2. CARDS */
+        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none !important; }
         
-        .card { background:white; padding:20px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; }
-        .hidden { display:none !important; }
-        .btn { padding:10px 20px; background:var(--primary); color:white; border:none; border-radius:4px; cursor:pointer; }
-        .btn-action { width:100%; background:#28a745; margin-top:10px; padding:15px; font-size:1.1em; }
+        /* 3. BUTTONS */
+        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-action { width: 100%; background: #28a745; margin-top: 10px; padding: 15px; font-size: 1.1em; }
+        .btn-danger { background: var(--accent); font-size: 0.8em; }
         
-        table { width:100%; border-collapse:collapse; margin-top:10px; }
-        th { background:#eee; text-align:left; padding:10px; }
-        td { padding:8px; border-bottom:1px solid #eee; }
-        input { padding:5px; border:1px solid #ccc; border-radius:4px; }
+        /* 4. TABLES & INPUTS */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #eee; text-align: left; padding: 10px; border-bottom: 2px solid #ccc; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        input.num-box { width: 50px; text-align: center; font-weight: bold; }
+        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
+
+        /* 5. HEAT GRID */
+        .heat-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .heat-card { background: white; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        .heat-header { background: var(--primary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         
-        .heat-container { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:15px; }
-        .heat-card { background:white; border:1px solid #ccc; border-radius:8px; }
-        .heat-header { background:var(--primary); color:white; padding:10px; font-weight:bold; }
-        .rider-select { padding:10px; border-bottom:1px solid #eee; cursor:pointer; }
+        .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Spectator Mode: Disable clicks */
-        body.spectator .rider-select { pointer-events:none; }
-        body.spectator .admin-only { display:none !important; }
-        
-        .pos-1 { background:#d4edda; } .pos-2 { background:#fff3cd; } .pos-3 { background:#f8d7da; }
-        .rank-1 { background:#fff9c4; } 
+        /* Interactive Logic: Admin vs Spectator */
+        body.admin-mode .rider-select:hover { background: #f0f0f0; }
+        body:not(.admin-mode) .rider-select { pointer-events: none; }
+        body:not(.admin-mode) .admin-only { display: none !important; }
+
+        /* 6. COLORS */
+        .pos-1 { background: #d4edda; border-left: 5px solid #28a745; } 
+        .pos-2 { background: #fff3cd; border-left: 5px solid #ffc107; } 
+        .pos-3 { background: #f8d7da; border-left: 5px solid #dc3545; }
+        .rank-1 { background: #fff9c4; font-weight: bold; }
+
+        /* 7. LOGIN OVERLAY */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #002366; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
 <body>
 
-<div class="nav-bar">
-    <a href="#" onclick="goHome()" class="home-btn">🏠 Home</a>
-    <h2 style="margin:0;">Sprint Ladder <span id="eventTag" style="font-size:0.6em; background:#E30613; color:white; padding:2px 6px; border-radius:4px;"></span></h2>
-</div>
+    <a href="https://www.frequencycycleworks.com/" target="_blank" style="text-decoration:none; color:inherit;">
+        <div class="sponsor-mini">
+            <span style="font-size:0.7em; text-transform:uppercase; color:#888;">Partner</span><br>
+            <strong>FREQUENCY CYCLEWORKS</strong>
+        </div>
+    </a>
 
-<div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#002366; z-index:999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white;">
-    <h3>Event Access</h3>
-    <input id="loginId" placeholder="Event ID" style="padding:10px; width:200px; margin-bottom:10px;">
-    <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" style="padding:10px; width:200px; margin-bottom:10px;">
-    <button onclick="doLogin()" style="padding:10px 20px; font-weight:bold;">ENTER</button>
-</div>
-
-<div id="phase-qualifying" class="card hidden">
-    <h3>1. Registration</h3>
-    <div class="admin-only">
-        <textarea id="importArea" style="width:100%; height:80px;" placeholder="Name, Bib, Cat"></textarea>
-        <button class="btn" onclick="importNames()">Import</button>
-        <button class="btn" style="background:#E30613; margin-left:10px;" onclick="wipeEvent()">⚠ Reset</button>
+    <div class="nav-bar">
+        <a href="index.html" class="home-btn">🏠 Home</a>
+        <h2 style="margin:0;">Sprint Ladder <span id="eventTag" style="font-size:0.6em; background:#E30613; color:white; padding:2px 6px; border-radius:4px;">...</span></h2>
     </div>
-    <table><thead><tr><th>#</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th></th></tr></thead><tbody id="riderTable"></tbody></table>
-    <div class="admin-only" style="margin-top:15px; background:#e3f2fd; padding:10px;">
-        Category: <select id="categoryFilter"><option value="ALL">All</option></select>
-        <button class="btn btn-action" onclick="generateHeats()">GENERATE HEATS</button>
+
+    <div id="loginOverlay">
+        <h3>Event Access</h3>
+        <input id="loginId" placeholder="Event ID" style="padding:10px; width:200px; margin-bottom:10px;">
+        <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" style="padding:10px; width:200px; margin-bottom:10px;">
+        <button onclick="doLogin()" style="padding:10px 20px; font-weight:bold; cursor:pointer;">ENTER</button>
     </div>
-</div>
 
-<div id="phase-racing" class="card hidden">
-    <h3>Race Card (<span id="roundBadge"></span>)</h3>
-    <div id="heatsContainer" class="heat-container"></div>
-    <div class="admin-only">
-        <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT</button>
-        <button class="btn" onclick="endEarly()" style="background:#E30613; margin-top:10px; font-size:0.8em;">End Event Early</button>
+    <div id="phase-qualifying" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>1. Registration</h3>
+            <button class="btn btn-danger admin-only" onclick="wipeEvent()">🗑 Reset Data</button>
+        </div>
+        
+        <div class="admin-only">
+            <p style="color:#666; font-size:0.9em;">Format: <strong>Name, Bib, Cat</strong> (e.g. "John, 101, A")</p>
+            <textarea id="importArea" placeholder="John Smith, 101, A&#10;Jane Doe, 102, B"></textarea>
+            <button class="btn" onclick="importNames()">Import Riders</button>
+        </div>
+        
+        <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>#</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th class="admin-only"></th></tr></thead>
+                <tbody id="riderTable"></tbody>
+            </table>
+        </div>
+        
+        <div class="admin-only" style="margin-top:15px; padding:10px; background:#e3f2fd; border-radius:4px;">
+            <strong>Race Category:</strong> <select id="categoryFilter" style="padding:5px;"><option value="ALL">All Categories</option></select>
+        </div>
+        <button class="btn btn-action admin-only" onclick="generateHeats()">GENERATE HEATS &rarr;</button>
     </div>
-</div>
 
-<div id="phase-standings" class="card hidden">
-    <h3>🏁 Final Results</h3>
-    <table><thead><tr><th>Rank</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th>Heat</th></tr></thead><tbody id="resultsBody"></tbody></table>
-    <button class="btn admin-only" onclick="wipeEvent()" style="margin-top:20px;">Start New Event</button>
-</div>
+    <div id="phase-racing" class="card hidden">
+        <div style="display:flex; justify-content:space-between;">
+            <h3>Race Card</h3>
+            <span style="background:#eee; padding:5px 10px; border-radius:10px; font-weight:bold;" id="roundBadge">Round 1</span>
+        </div>
+        <p class="admin-only" style="font-size:0.9em; color:#002366; background:#e3f2fd; padding:5px;"><strong>Admin:</strong> Click Winner (Green) then Loser (Red).</p>
+        
+        <div id="heatsContainer" class="heat-container"></div>
+        
+        <div class="admin-only">
+            <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT & NEXT ROUND &rarr;</button>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn btn-danger" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
+            </div>
+        </div>
+    </div>
 
-<div style="text-align:center; margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
-    <a href="https://www.buymeacoffee.com/YOUR_LINK" target="_blank" style="background:#FFDD00; color:black; padding:10px 20px; border-radius:20px; text-decoration:none; border:2px solid black; font-weight:bold;">☕ Buy me a Beer</a>
-</div>
+    <div id="phase-standings" class="card hidden">
+        <h3>🏁 Final Results</h3>
+        <table id="resultsTable">
+            <thead><tr><th>Rank</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th>Heat</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
+        </table>
+        
+        <div style="margin-top:30px; padding:15px; background:#f9f9f9; border-radius:8px; font-size:0.9em; color:#555; text-align:center;">
+            <em>Like this software?</em><br>
+            I can build custom schedulers and rotas for you.<br>
+            <a href="mailto:your-email@example.com" style="color:#002366; font-weight:bold;">Contact the Developer</a>
+        </div>
+
+        <button class="btn admin-only" onclick="wipeEvent()" style="margin-top:20px; background:#666; width:100%;">Start New Event</button>
+    </div>
+
+    <div style="text-align:center; margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
+        <a href="https://www.buymeacoffee.com/YOUR_LINK" target="_blank" style="background:#FFDD00; color:black; padding:10px 20px; border-radius:20px; text-decoration:none; border:2px solid black; font-weight:bold;">☕ Buy me a Beer</a>
+    </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
-
-const firebaseConfig = {
-
-  apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-
-  authDomain: "sprintfutures.firebaseapp.com",
-
-  projectId: "sprintfutures",
-
-  storageBucket: "sprintfutures.firebasestorage.app",
-
-  messagingSenderId: "535060943616",
-
-  appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-
-  measurementId: "G-9XFQV3PLEV
+    // --- 1. FIREBASE CONFIG (YOUR KEYS) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+        authDomain: "sprintfutures.firebaseapp.com",
+        projectId: "sprintfutures",
+        storageBucket: "sprintfutures.firebasestorage.app",
+        messagingSenderId: "535060943616",
+        appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+        measurementId: "G-9XFQV3PLEV"
     };
-    // ... (Firebase Config stays the same) ...
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- STATE ---
+    // --- 2. STATE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
-    let eventID = ""; 
+    let eventID = "";
     let isAdmin = false;
-    const ADMIN_PIN = "1234"; 
+    const PIN = "1234"; // Default PIN
 
-    // --- AUTO-LOGIN LOGIC (NEW) ---
-    window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlEvent = urlParams.get('event');
-        const urlAuth = urlParams.get('auth');
+    // --- 3. INIT & LOGIN ---
+    window.onload = () => {
+        const p = new URLSearchParams(window.location.search);
+        const urlEvent = p.get('event');
+        const urlAuth = p.get('auth');
 
         if(urlEvent) {
-            // 1. Found "Magic Link" credentials
             eventID = urlEvent;
+            document.getElementById('eventTag').innerText = eventID;
+            
             if(urlAuth === 'admin') {
                 isAdmin = true;
                 document.body.classList.add('admin-mode');
+                document.getElementById('loginOverlay').style.display = 'none';
+                startSync();
             } else {
-                applySpectatorMode();
+                // Spectator: Check if they are just viewing, or need to login
+                // We default to spectator mode if ID is present but no auth
+                document.getElementById('loginOverlay').style.display = 'none';
+                startSync();
             }
-            // Skip login screen, start sync immediately
-            document.getElementById('loginOverlay').style.display = 'none';
-            startSync();
-        } else {
-            // No credentials? Show Login Screen
-            document.getElementById('loginOverlay').style.display = 'flex';
         }
     };
 
-    function attemptLogin() {
-        const eid = document.getElementById('eventIdInput').value.trim().toLowerCase();
-        const pin = document.getElementById('adminPinInput').value.trim();
-        if(!eid) return alert("Enter Event ID");
-
-        eventID = eid;
-        if(pin === ADMIN_PIN) {
-            isAdmin = true;
-            document.body.classList.add('admin-mode');
-        } else {
-            isAdmin = false;
-            applySpectatorMode();
-        }
-        
-        document.getElementById('loginOverlay').style.display = 'none';
-        startSync();
-    }
-
-    function applySpectatorMode() {
-        // Disable inputs/buttons visually
-        let style = document.createElement('style');
-        style.innerHTML = `button:not(.home-btn), input, select, textarea { pointer-events: none; opacity: 0.8; } .nav-bar button, .nav-bar a { pointer-events: auto; opacity: 1; }`;
-        document.head.appendChild(style);
-    }
-    
-    // ... (Rest of your sync/save logic remains the same) ...
     function doLogin() {
-        const id = document.getElementById('loginId').value.trim();
+        const id = document.getElementById('loginId').value.trim().toLowerCase();
         const pin = document.getElementById('loginPin').value.trim();
         if(!id) return alert("Enter Event ID");
+        
         let url = `?event=${id}`;
-        if(pin===PIN) url += `&auth=admin`;
+        if(pin === PIN) url += `&auth=admin`;
         window.location.href = url;
     }
 
+    // --- 4. FIREBASE SYNC ---
     function startSync() {
         db.ref(`events/${eventID}/sprint`).on('value', snap => {
             const data = snap.val();
             if(data) {
-                riders=data.riders||[]; heats=data.heats||[]; roundCounter=data.roundCounter||1;
+                riders = data.riders || [];
+                heats = data.heats || [];
+                roundCounter = data.roundCounter || 1;
                 updateCats();
-                if(data.isFinished) { showPhase('phase-standings'); renderResults(); }
-                else if(heats.length>0) { showPhase('phase-racing'); renderHeats(); }
-                else { showPhase('phase-qualifying'); renderTable(); }
-            } else { renderTable(); }
+                
+                if(data.isFinished) {
+                    showPhase('phase-standings');
+                    renderResults(data.earlyEnd); // Pass flag if ended early
+                } else if(heats.length > 0) {
+                    showPhase('phase-racing');
+                    renderHeats();
+                } else {
+                    showPhase('phase-qualifying');
+                    renderTable();
+                }
+            } else {
+                renderTable(); // New Event
+            }
         });
     }
 
-    function save(finished=false) {
+    function save(finished=false, early=false) {
         if(!isAdmin) return;
-        db.ref(`events/${eventID}/sprint`).set({riders, heats, roundCounter, isFinished:finished});
+        db.ref(`events/${eventID}/sprint`).set({
+            riders, heats, roundCounter, 
+            isFinished: finished,
+            earlyEnd: early,
+            lastUpdate: Date.now()
+        });
     }
 
-    // --- LOGIC ---
-    function importNames() {
-        const txt = document.getElementById('importArea').value;
-        if(!txt.trim()) return;
-        txt.split('\n').forEach(l => {
+    // --- 5. LOGIC & IMPORT ---
+    window.importNames = () => {
+        const val = document.getElementById('importArea').value;
+        if(!val.trim()) return alert("Paste names first.");
+        
+        const lines = val.split(/\r?\n/);
+        lines.forEach(l => {
             if(!l.trim()) return;
-            const p = l.split(',').map(s=>s.trim());
-            let name=p[0], bib='', cat='';
-            if(p[1]) (!isNaN(p[1]) && p[1].length<5) ? (bib=p[1], cat=p[2]||'') : (cat=p[1]);
+            const p = l.split(',').map(s => s.trim());
+            
+            let name = p[0];
+            let bib = '';
+            let cat = '';
+
+            // Parser: Name, Bib, Cat OR Name, Cat
+            if(p.length > 1) {
+                if(p[1].length < 5 && !isNaN(p[1])) {
+                    bib = p[1];
+                    if(p[2]) cat = p[2];
+                } else {
+                    cat = p[1];
+                }
+            }
             riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
         });
-        document.getElementById('importArea').value=''; save();
+        document.getElementById('importArea').value=''; 
+        save();
     }
+
+    window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } }
 
     function updateCats() {
         cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
         const s = document.getElementById('categoryFilter');
         if(s.options.length-1 !== cats.size) {
-            s.innerHTML='<option value="ALL">All</option>';
+            s.innerHTML='<option value="ALL">All Categories</option>';
             Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`);
         }
     }
 
-    window.updateRider = (id,f,v) => { if(!isAdmin)return; let r=riders.find(x=>x.id==id); if(r){ r[f]=(f=='time'?parseFloat(v)||999:v); save(); } }
-    
+    window.updateRider = (id,f,v) => { 
+        if(!isAdmin) return; 
+        let r=riders.find(x=>x.id==id); 
+        if(r){ r[f]=(f=='time'?parseFloat(v)||999:v); save(); } 
+    }
+
     function renderTable() {
         const tb=document.getElementById('riderTable'); tb.innerHTML='';
         riders.forEach((r,i) => {
-            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()">X</button>` : '';
+            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" style="color:red; font-weight:bold;">X</button>` : '';
             let inputs = isAdmin ? 
                 `<td><input style="width:40px" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
                  <td>${r.name}</td>
@@ -227,17 +294,21 @@ const firebaseConfig = {
         });
     }
 
+    // --- 6. HEATS & RACING ---
     window.generateHeats = () => {
         const cat = document.getElementById('categoryFilter').value;
         let pool = (cat==='ALL') ? [...riders] : riders.filter(r=>r.cat===cat);
-        if(pool.length<2) return alert("Need 2+ riders");
+        
+        if(pool.length<2) return alert("Need 2+ riders.");
         pool.sort((a,b)=>a.time-b.time);
         
-        heats=[];
+        heats=[]; 
         if(pool.length>=2) heats.push({name:"Heat A", riders:[pool.shift(), pool.shift()], res:[]});
-        let c=66;
+        
+        let c=66; // B
         while(pool.length) {
-            let s=3; if(pool.length===4||pool.length===2) s=2;
+            let s=3; 
+            if(pool.length===4 || pool.length===2) s=2;
             if(pool.length===1) { if(heats.length) heats[heats.length-1].riders.push(pool.shift()); continue; }
             let hr=[]; for(let i=0;i<s;i++) if(pool.length) hr.push(pool.shift());
             heats.push({name:"Heat "+String.fromCharCode(c++), riders:hr, res:[]});
@@ -248,23 +319,35 @@ const firebaseConfig = {
     function renderHeats() {
         const c=document.getElementById('heatsContainer'); c.innerHTML='';
         document.getElementById('roundBadge').innerText = "Round "+roundCounter;
+        
         heats.forEach((h,i) => {
-            let html=`<div class="heat-card"><div class="heat-header">${h.name}</div><div>`;
+            let html=`<div class="heat-card"><div class="heat-header"><span>${h.name}</span> <span style="font-size:0.8em; opacity:0.8;">${h.riders.length} Riders</span></div><div class="heat-body">`;
             h.riders.forEach(r => {
                 let cls='', idx=h.res.indexOf(r.id);
                 if(idx!==-1) cls = (idx===0?'pos-1':(idx===h.riders.length-1&&idx>0?'pos-3':'pos-2'));
+                
+                let bibBadge = r.bib ? `<span style="background:#333; color:white; padding:2px 5px; border-radius:4px; font-size:0.8em; margin-right:5px;">#${r.bib}</span>` : '';
+
                 html+=`<div class="rider-select ${cls}" onclick="res(${i},${r.id})">
-                    <strong>#${r.bib||''} ${r.name}</strong> <small>(${r.time}s)</small>
+                    <div>${bibBadge} <strong>${r.name}</strong></div>
+                    <div style="font-size:0.9em;">${r.time===999?'-':r.time}s</div>
                 </div>`;
             });
             c.innerHTML+=html+'</div></div>';
         });
     }
 
-    window.res = (hi,rid) => { if(!isAdmin)return; let h=heats[hi]; h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); save(); }
+    window.res = (hi,rid) => { 
+        if(!isAdmin) return; 
+        let h=heats[hi]; 
+        h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); 
+        save(); 
+    }
 
+    // --- 7. PROMOTION & RESULTS ---
     window.finishRound = () => {
-        for(let h of heats) if(h.res.length!=h.riders.length) return alert("Finish heats");
+        for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats.");
+        
         if(roundCounter>=3) { save(true); return; }
         
         let next=heats.map(()=>[]);
@@ -278,23 +361,38 @@ const firebaseConfig = {
         roundCounter++; save();
     }
 
-    window.endEarly = () => { if(confirm("End Event?")) save(true); }
-    window.wipeEvent = () => { if(confirm("Reset?")) { riders=[]; heats=[]; roundCounter=1; save(false); }}
-    window.goHome = () => { let u=`index.html?event=${eventID}`; if(isAdmin) u+='&auth=admin'; window.location.href=u; }
+    window.endEventEarly = () => { 
+        if(confirm("End event now? Un-raced heats will be ranked by Qualifying Time.")) save(true, true); 
+    }
 
-    function renderResults() {
+    function renderResults(earlyEnd) {
         const tb=document.getElementById('resultsBody'); tb.innerHTML='';
         let rank=1;
+        
         heats.forEach(h => {
+            // Did they race?
             let raced = (h.res && h.res.length===h.riders.length);
+            
+            // If raced, use results. If early end, sort by Time.
             let sorted = raced ? h.res.map(id=>riders.find(x=>x.id==id)) : [...h.riders].sort((a,b)=>a.time-b.time);
+            
             sorted.forEach((r,idx) => {
                 let cls = rank===1?'rank-1':'';
-                tb.innerHTML+=`<tr class="${cls}"><td>${rank++}</td><td>${r.bib||''}</td><td>${r.name}</td><td>${r.cat||''}</td><td>${r.time}</td><td>${h.name} (${raced?idx+1:'Seeded'})</td></tr>`;
+                let note = raced ? `${h.name} (${idx+1}${ordinal(idx+1)})` : `${h.name} (Seeded)`;
+                
+                tb.innerHTML+=`<tr class="${cls}">
+                    <td>${rank++}</td>
+                    <td>${r.bib||''}</td>
+                    <td><strong>${r.name}</strong></td>
+                    <td>${r.cat||''}</td>
+                    <td>${r.time}</td>
+                    <td style="font-size:0.8em; color:#666;">${note}</td>
+                </tr>`;
             });
         });
     }
 
+    function ordinal(n) { const s=["th","st","nd","rd"], v=n%100; return s[(v-20)%10]||s[v]||s[0]; }
     function showPhase(id) {
         ['phase-qualifying','phase-racing','phase-standings'].forEach(p=>document.getElementById(p).classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
