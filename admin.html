@@ -124,7 +124,7 @@
 
         // Security check
         if (!eventID || params.get('auth') !== 'admin') {
-            window.location.href = 'index.html'; // Kick out if not admin
+            window.location.href = 'index.html'; 
         } else {
             document.getElementById('eventTag').innerText = eventID.toUpperCase();
             startSync();
@@ -133,7 +133,6 @@
         let riders = [];
 
         function startSync() {
-            // Listen to the SHARED riders list
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 renderTable();
@@ -205,8 +204,10 @@
             });
         }
 
+        // --- FIXED LAUNCHER ---
         function launch(page) {
-            const url = new URL(page + '.html', window.location.origin);
+            // Using window.location.href ensures we stay inside the current folder
+            const url = new URL(page + '.html', window.location.href);
             url.searchParams.set('event', eventID);
             url.searchParams.set('auth', 'admin');
             window.open(url.toString(), '_blank');
