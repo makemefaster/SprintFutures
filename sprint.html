@@ -128,6 +128,7 @@
         // EXPOSE FUNCTIONS
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
+        window.importNames = importNames;
         window.updateRider = updateRider;
         window.generateHeats = generateHeats;
         window.res = res;
@@ -177,13 +178,38 @@
         // INIT
         const p = new URLSearchParams(window.location.search);
         eventID = p.get('event');
-        if (p.get('auth') === 'admin') {
-            isAdmin=true; document.body.classList.add('admin-mode');
-        }
-        document.getElementById('eventTag').innerText = eventID ? eventID.toUpperCase() : "DEMO";
+        
+        if(eventID) {
+            document.getElementById('eventTag').innerText = eventID.toUpperCase();
+            
+            // --- THE CRITICAL FIX: Hide overlay if ID is present ---
+            document.getElementById('loginOverlay').classList.add('hidden');
 
-        // SYNC
-        if (eventID) {
+            if (p.get('auth') === 'admin') {
+                isAdmin=true; 
+                document.body.classList.add('admin-mode');
+            }
+            startSync();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
+                e.preventDefault(); triggerAdmin();
+            }
+        });
+
+        function doLogin() {
+            const id = document.getElementById('loginId').value.trim().toLowerCase();
+            const pin = document.getElementById('loginPin').value.trim();
+            if(!id) return alert("Enter Event ID");
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            if(pin===PIN) url.searchParams.set('auth', 'admin');
+            window.location.href = url.toString();
+        }
+
+        function startSync() {
+            if(!db) return;
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 updateCats();
@@ -209,22 +235,6 @@
             });
         }
 
-        document.addEventListener('keydown', (e) => {
-            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
-                e.preventDefault(); triggerAdmin();
-            }
-        });
-
-        function doLogin() {
-            const id = document.getElementById('loginId').value.trim().toLowerCase();
-            const pin = document.getElementById('loginPin').value.trim();
-            if(!id) return alert("Enter Event ID");
-            const url = new URL(window.location.href);
-            url.searchParams.set('event', id);
-            if(pin===PIN) url.searchParams.set('auth', 'admin');
-            window.location.href = url.toString();
-        }
-
         function save(finished=false, early=false) {
             if(!isAdmin || !db) return;
             set(ref(db, `events/${eventID}/sprint`), {
@@ -237,22 +247,6 @@
             document.getElementById(id).classList.remove('hidden');
         }
         function forcePhase(p) { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); }
-
-        function importNames() {
-            const val = document.getElementById('importArea').value;
-            if(!val.trim()) return alert("Paste names first.");
-            val.split(/\r?\n/).forEach(l => {
-                if(!l.trim()) return;
-                const p = l.split(',').map(s=>s.trim());
-                let name=p[0], bib='', cat='';
-                if(p.length > 1) {
-                    if(p[1].length < 5 && !isNaN(p[1])) { bib=p[1]; if(p[2]) cat=p[2]; } 
-                    else { cat=p[1]; }
-                }
-                riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
-            });
-            document.getElementById('importArea').value=''; save();
-        }
 
         function updateCats() {
             cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
@@ -267,14 +261,15 @@
 
         function renderTable() {
             const tb=document.getElementById('riderTable'); tb.innerHTML='';
+            riders.sort((a,b) => a.time - b.time);
             riders.forEach((r,i) => {
                 let row = isAdmin ? 
                     `<td class="px-4 py-3">${i+1}</td>
-                     <td class="px-4 py-3"><input class="w-12 border rounded text-center" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
+                     <td class="px-4 py-3"><input class="w-12 border rounded text-center p-1" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
                      <td class="px-4 py-3 font-bold text-slate-700">${r.name}</td>
                      <td class="px-4 py-3"><input class="w-16 border rounded text-center" value="${r.cat||''}" onchange="updateRider(${r.id},'cat',this.value)"></td>
                      <td class="px-4 py-3"><input class="w-20 border rounded text-center" type="number" step="0.001" value="${r.time===999?'':r.time}" onchange="updateRider(${r.id},'time',this.value)"></td>
-                     <td class="px-4 py-3"><button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" class="text-red-500 hover:text-red-700 font-bold">×</button></td>` :
+                     <td class="px-4 py-3"><button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" class="text-red-400 hover:text-red-600 font-bold">×</button></td>` :
                     `<td class="px-4 py-3 text-slate-500">${i+1}</td>
                      <td class="px-4 py-3 font-mono text-slate-500">${r.bib||'-'}</td>
                      <td class="px-4 py-3 font-bold text-slate-800">${r.name}</td>
@@ -289,7 +284,6 @@
             const selectedCat = document.getElementById('categoryFilter').value;
             const sizePref = parseInt(document.getElementById('heatSizeSelector').value); 
             
-            // 1. Determine categories to process
             let categoriesToRun = [];
             if(selectedCat === 'ALL') {
                 categoriesToRun = [...new Set(riders.map(r => r.cat))].sort();
@@ -297,14 +291,14 @@
                 categoriesToRun = [selectedCat];
             }
 
-            heats=[]; 
+            heats = [];
             let heatChar = 65; // 'A'
 
-            // 2. Loop through each category separately (ISOLATION)
+            // Loop through each category separately (ISOLATION)
             categoriesToRun.forEach(cat => {
                 let pool = riders.filter(r => r.cat === cat);
-                if(pool.length < 2) return; // Skip empty/small categories
-                pool.sort((a,b)=>a.time-b.time); // Seed by time
+                if(pool.length < 2) return; 
+                pool.sort((a,b)=>a.time-b.time); 
 
                 // Chunking logic
                 while(pool.length > 0) {
@@ -312,7 +306,6 @@
                     if(sizePref === 3 && pool.length === 4) s = 2; // Avoid 3 vs 1
                     if(pool.length === 2) s = 2;
                     if(pool.length === 1) {
-                        // Add straggler to last heat of THIS category
                         if(heats.length > 0) heats[heats.length-1].riders.push(pool.shift());
                         continue;
                     }
@@ -322,7 +315,7 @@
                     
                     heats.push({
                         name: `Heat ${String.fromCharCode(heatChar++)}`,
-                        catName: cat, // Store for display
+                        catName: cat, 
                         riders: hr, 
                         res: []
                     });
@@ -342,7 +335,6 @@
             document.getElementById('roundBadge').innerText = "Round "+roundCounter;
             
             heats.forEach((h,i) => {
-                // Show Category Name in Heat Header
                 let catLabel = h.catName ? `<span class="bg-black/30 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2">${h.catName}</span>` : '';
 
                 let html=`<div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
@@ -354,7 +346,7 @@
                 
                 h.riders.forEach(r => {
                     let idx = (h.res||[]).indexOf(r.id);
-                    let cls='hover:bg-slate-50 cursor-pointer transition';
+                    let cls = isAdmin ? 'hover:bg-slate-50 cursor-pointer transition' : '';
                     let status='';
                     if(idx !== -1) {
                         if(roundCounter < TOTAL_ROUNDS) {
@@ -386,7 +378,6 @@
         function finishRound() {
             for(let h of heats) if((h.res||[]).length!=h.riders.length) return alert("Please finish all heats first.");
             
-            // Save history
             if(!history) history = [];
             history.push({
                 round: roundCounter,
