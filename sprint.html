@@ -53,6 +53,7 @@
                 <input id="loginId" placeholder="Event ID" class="w-full p-3 rounded bg-white text-slate-900 font-bold">
                 <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" class="w-full p-3 rounded bg-white text-slate-900">
                 <button onclick="doLogin()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition">ENTER RACE CENTRE</button>
+                <p id="initStatus" class="text-xs text-slate-400 text-center mt-2">Ready</p>
             </div>
         </div>
 
@@ -158,10 +159,22 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // 1. FIREBASE CONFIG
+        // 1. EXPOSE FUNCTIONS IMMEDIATELY (So Button Works even if Firebase is slow)
+        window.doLogin = doLogin;
+        window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } };
+        window.importNames = importNames;
+        window.updateRider = updateRider;
+        window.generateHeats = generateHeats;
+        window.res = res;
+        window.finishRound = finishRound;
+        window.endEventEarly = () => { if(confirm("End event now?")) save(true, true); };
+        window.forcePhase = forcePhase;
+
+        // 2. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
             authDomain: "sprintfutures.firebaseapp.com",
+            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com",
             projectId: "sprintfutures",
             storageBucket: "sprintfutures.firebasestorage.app",
             messagingSenderId: "535060943616",
@@ -169,10 +182,19 @@
             measurementId: "G-9XFQV3PLEV"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        // 3. SAFE INITIALIZATION
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            console.log("Firebase initialized");
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            document.getElementById('initStatus').innerText = "Database Error (Check Console)";
+            document.getElementById('initStatus').className = "text-red-500 font-bold mt-2";
+        }
 
-        // 2. STATE
+        // 4. STATE
         let riders = [];
         let heats = [];
         let roundCounter = 1;
@@ -182,18 +204,7 @@
         const PIN = "1234";
         const TOTAL_ROUNDS = 3; // Heat -> Semi -> Final
 
-        // 3. EXPOSE FUNCTIONS TO WINDOW
-        window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } };
-        window.importNames = importNames;
-        window.updateRider = updateRider;
-        window.generateHeats = generateHeats;
-        window.res = res;
-        window.finishRound = finishRound;
-        window.endEventEarly = () => { if(confirm("End event now?")) save(true, true); };
-        window.forcePhase = forcePhase;
-        window.doLogin = doLogin;
-
-        // 4. INIT
+        // 5. INIT LOGIC
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
         const urlAuth = p.get('auth');
@@ -217,12 +228,21 @@
             const id = document.getElementById('loginId').value.trim().toLowerCase();
             const pin = document.getElementById('loginPin').value.trim();
             if(!id) return alert("Enter Event ID");
-            let url = `?event=${id}`;
-            if(pin === PIN) url += `&auth=admin`;
-            window.location.href = url;
+            
+            // Fix: Use URL object to construct safe URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            
+            if(pin === PIN) {
+                url.searchParams.set('auth', 'admin');
+            }
+            
+            window.location.href = url.toString();
         }
 
         function startSync() {
+            if (!db) return; // Prevent crash if DB init failed
+            
             onValue(ref(db, `events/${eventID}/sprint`), (snap) => {
                 const data = snap.val();
                 if(data) {
@@ -251,7 +271,7 @@
         }
 
         function save(finished=false, early=false) {
-            if(!isAdmin) return;
+            if(!isAdmin || !db) return;
             set(ref(db, `events/${eventID}/sprint`), {
                 riders, heats, roundCounter, 
                 isFinished: finished,
