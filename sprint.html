@@ -60,6 +60,7 @@
                 <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" class="w-full p-3 rounded bg-white text-slate-900">
                 <button onclick="doLogin()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition">ENTER RACE CENTRE</button>
                 <p id="initStatus" class="text-xs text-slate-400 text-center mt-2">Ready</p>
+                <p class="text-[0.6rem] text-slate-500 text-center mt-4">Admin Shortcut: Ctrl + Shift + A</p>
             </div>
         </div>
 
@@ -236,6 +237,17 @@
                 startSync();
             }
         }
+
+        // 7. KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', (e) => {
+            // Ctrl + Shift + A to show Admin Login
+            if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+                e.preventDefault(); // Prevent default browser actions
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                if (eventID) document.getElementById('loginId').value = eventID;
+                document.getElementById('loginPin').focus();
+            }
+        });
 
         function doLogin() {
             const id = document.getElementById('loginId').value.trim().toLowerCase();
