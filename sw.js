@@ -1,5 +1,5 @@
 // INCREASE THIS VERSION NUMBER EVERY TIME YOU UPDATE CODE
-const CACHE_NAME = 'race-suite-v3'; 
+const CACHE_NAME = 'race-suite-v5';
 
 const urlsToCache = [
   './',
