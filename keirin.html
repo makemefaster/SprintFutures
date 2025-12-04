@@ -4,331 +4,383 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keirin Ladder</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002366">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <style>
-        /* Shared Styles */
         :root { --primary: #002366; --accent: #E30613; --bg: #f5f5f5; --card: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 60px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 80px; }
+        
+        /* NAV & SPONSOR */
         .nav-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .home-btn { text-decoration: none; background: #ddd; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: #333; }
-        
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        th { background: #002366; color: white; text-align: left; padding: 12px; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
-        .num-box { width: 50px; padding: 5px; text-align: center; font-weight: bold; border: 1px solid #ccc; border-radius: 4px;}
-        
-        /* Layout */
+        .sponsor-mini { margin-bottom: 20px; padding: 10px; background: white; border-bottom: 4px solid #00d2ff; text-align: center; }
+
+        /* CARDS */
+        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .hidden { display: none !important; }
-        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn { padding: 12px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-size: 1rem; font-weight: bold; }
-        .btn-action { width: 100%; background: #28a745; margin-top: 15px; padding: 15px; font-size: 1.1em; }
         
-        /* Heats */
+        /* BUTTONS */
+        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-action { width: 100%; background: #28a745; margin-top: 10px; padding: 15px; font-size: 1.1em; }
+        .btn-danger { background: var(--accent); font-size: 0.8em; }
+        
+        /* TABLES */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #eee; text-align: left; padding: 10px; border-bottom: 2px solid #ccc; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        input.num-box { width: 50px; text-align: center; font-weight: bold; }
+        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
+
+        /* HEAT GRID */
         .heat-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .heat-card { background: white; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .heat-header { background: var(--primary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .heat-body { padding: 0; }
         
-        .rider-select { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .rider-select:hover { background: #f9f9f9; }
+        .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Result Colors */
-        .pos-top { background: #d4edda; border-left: 5px solid #28a745; } /* Green */
-        .pos-bot { background: #f8d7da; border-left: 5px solid #dc3545; } /* Red */
-        .pos-mid { background: #fff3cd; border-left: 5px solid #ffc107; } /* Yellow */
-        
-        /* Final Rank Colors */
-        .rank-1 { background: #fff9c4; font-weight: bold; } /* Gold */
-        .rank-2 { background: #f5f5f5; } /* Silver */
-        .rank-3 { background: #ffe0b2; } /* Bronze */
+        /* Admin vs Spectator */
+        body.admin-mode .rider-select:hover { background: #f0f0f0; }
+        body:not(.admin-mode) .rider-select { pointer-events: none; }
+        body:not(.admin-mode) .admin-only { display: none !important; }
 
-        .legal-footer { text-align: center; margin-top: 40px; color: #999; font-size: 0.8em; border-top: 1px solid #ccc; padding-top: 10px; }
+        /* KEIRIN COLORS */
+        .pos-top { background: #d4edda; border-left: 5px solid #28a745; } /* Green (Up) */
+        .pos-mid { background: #fff3cd; border-left: 5px solid #ffc107; } /* Yellow (Stay) */
+        .pos-bot { background: #f8d7da; border-left: 5px solid #dc3545; } /* Red (Down) */
+        .rank-1 { background: #fff9c4; font-weight: bold; }
+
+        /* LOGIN OVERLAY */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #002366; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
 <body>
 
-<div class="nav-bar">
-    <a href="index.html" class="home-btn">🏠 Home</a>
-    <h2 style="margin:0;">Keirin Ladder</h2>
-</div>
+    <a href="https://www.frequencycycleworks.com/" target="_blank" style="text-decoration:none; color:inherit;">
+        <div class="sponsor-mini">
+            <span style="font-size:0.7em; text-transform:uppercase; color:#888;">Partner</span><br>
+            <strong>FREQUENCY CYCLEWORKS</strong>
+        </div>
+    </a>
 
-<div id="phase-qualifying" class="card">
-    <h3>1. Registration & Qualifying</h3>
-    <p>Paste format: <strong>Name, Number, Category</strong> (e.g., "Jason Kenny, 105, Elite")</p>
-    <textarea id="importArea" style="width:100%; height:80px; padding:10px;"></textarea>
-    <button class="btn" onclick="importNames()">Import</button>
-    
-    <div style="margin-top:20px; max-height: 400px; overflow-y: auto;">
-        <table>
-            <thead><tr><th>#</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th>X</th></tr></thead>
-            <tbody id="riderTable"></tbody>
+    <div class="nav-bar">
+        <a href="index.html" class="home-btn">🏠 Home</a>
+        <h2 style="margin:0;">Keirin Ladder <span id="eventTag" style="font-size:0.6em; background:#E30613; color:white; padding:2px 6px; border-radius:4px;">...</span></h2>
+    </div>
+
+    <div id="loginOverlay">
+        <h3>Event Access</h3>
+        <input id="loginId" placeholder="Event ID" style="padding:10px; width:200px; margin-bottom:10px;">
+        <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" style="padding:10px; width:200px; margin-bottom:10px;">
+        <button onclick="doLogin()" style="padding:10px 20px; font-weight:bold; cursor:pointer;">ENTER</button>
+    </div>
+
+    <div id="phase-qualifying" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>1. Registration</h3>
+            <button class="btn btn-danger admin-only" onclick="wipeEvent()">🗑 Reset Data</button>
+        </div>
+        
+        <div class="admin-only">
+            <p style="color:#666; font-size:0.9em;">Format: <strong>Name, Bib, Cat</strong></p>
+            <textarea id="importArea" placeholder="Jason Kenny, 105, Elite"></textarea>
+            <button class="btn" onclick="importNames()">Import Riders</button>
+        </div>
+        
+        <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>#</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th class="admin-only"></th></tr></thead>
+                <tbody id="riderTable"></tbody>
+            </table>
+        </div>
+        
+        <div class="admin-only" style="margin-top:15px; padding:10px; background:#e3f2fd; border-radius:4px;">
+            <strong>Race Category:</strong> <select id="categoryFilter" style="padding:5px;"><option value="ALL">All Categories</option></select>
+        </div>
+        <button class="btn btn-action admin-only" onclick="generateHeats()">GENERATE HEATS &rarr;</button>
+    </div>
+
+    <div id="phase-racing" class="card hidden">
+        <div style="display:flex; justify-content:space-between;">
+            <h3>Race Card</h3>
+            <span style="background:#eee; padding:5px 10px; border-radius:10px; font-weight:bold;" id="roundBadge">Round 1</span>
+        </div>
+        <p class="admin-only" style="font-size:0.9em; color:#002366; background:#e3f2fd; padding:5px;"><strong>Admin:</strong> Click Finish Order (1st to Last).</p>
+        
+        <div id="heatsContainer" class="heat-container"></div>
+        
+        <div class="admin-only">
+            <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT & NEXT ROUND &rarr;</button>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn btn-danger" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="phase-standings" class="card hidden">
+        <h3>🏁 Final Results</h3>
+        <table id="resultsTable">
+            <thead><tr><th>Rank</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th>Heat</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
         </table>
-    </div>
-    
-    <div style="margin-top:15px; padding:15px; background:#e3f2fd; border-radius: 4px;">
-        <strong>Race Category:</strong> <select id="categoryFilter" style="padding: 5px; font-size: 1rem;"><option value="ALL">Race Everyone (All Categories)</option></select>
-    </div>
-    <button class="btn btn-action" onclick="generateHeats()">GENERATE HEATS</button>
-</div>
+        
+        <div style="margin-top:30px; padding:15px; background:#f9f9f9; border-radius:8px; font-size:0.9em; color:#555; text-align:center;">
+            <em>Like this software?</em><br>
+            I can build custom schedulers and rotas for you.<br>
+            <a href="mailto:your-email@example.com" style="color:#002366; font-weight:bold;">Contact the Developer</a>
+        </div>
 
-<div id="phase-racing" class="card hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3>Race Card</h3>
-        <span style="background:#eee; padding:5px 10px; border-radius:12px; font-weight:bold;" id="roundBadge">Round 1</span>
+        <button class="btn admin-only" onclick="wipeEvent()" style="margin-top:20px; background:#666; width:100%;">Start New Event</button>
     </div>
-    <p style="color:#666; font-size:0.9em;">Click riders in finish order (1st to Last).</p>
-    <div id="heatsContainer" class="heat-container"></div>
-    <div style="text-align:right; margin-bottom:10px;">
-    <button class="btn btn-clear" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
-</div>
-    <button class="btn btn-action" onclick="finishRound()">CONFIRM RESULT & NEXT ROUND</button>
-</div>
 
-<div id="phase-standings" class="card hidden">
-    <h3>🏆 Final Results</h3>
-    <table id="resultsTable">
-        <thead><tr><th>Rank</th><th>Bib</th><th>Name</th><th>Cat</th><th>Qual Time</th><th>Final Heat</th></tr></thead>
-        <tbody id="resultsBody"></tbody>
-    </table>
-    <button class="btn" onclick="hardReset()" style="margin-top:20px; background: #666;">Start New Event</button>
-</div>
-
-<div class="legal-footer">
-    &copy; 2024. All Rights Reserved. Proprietary Software.
-</div>
+    <div style="text-align:center; margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
+        <a href="https://www.buymeacoffee.com/YOUR_LINK" target="_blank" style="background:#FFDD00; color:black; padding:10px 20px; border-radius:20px; text-decoration:none; border:2px solid black; font-weight:bold;">☕ Buy me a Beer</a>
+    </div>
 
 <script>
-    // ... (Firebase Config stays the same) ...
+    // --- 1. FIREBASE CONFIG (YOUR KEYS INTEGRATED) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+      authDomain: "sprintfutures.firebaseapp.com",
+      projectId: "sprintfutures",
+      storageBucket: "sprintfutures.firebasestorage.app",
+      messagingSenderId: "535060943616",
+      appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+      measurementId: "G-9XFQV3PLEV"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- STATE ---
+    // --- 2. STATE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
-    let eventID = ""; 
+    let eventID = "";
     let isAdmin = false;
-    const ADMIN_PIN = "1234"; 
+    const PIN = "1234"; 
+    const TOTAL_ROUNDS = 2; // Keirin is shorter (Heat -> Final)
 
-    // --- AUTO-LOGIN LOGIC (NEW) ---
-    window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlEvent = urlParams.get('event');
-        const urlAuth = urlParams.get('auth');
+    // --- 3. INIT & LOGIN ---
+    window.onload = () => {
+        const p = new URLSearchParams(window.location.search);
+        const urlEvent = p.get('event');
+        const urlAuth = p.get('auth');
 
         if(urlEvent) {
-            // 1. Found "Magic Link" credentials
             eventID = urlEvent;
+            document.getElementById('eventTag').innerText = eventID;
+            
             if(urlAuth === 'admin') {
                 isAdmin = true;
                 document.body.classList.add('admin-mode');
+                document.getElementById('loginOverlay').style.display = 'none';
+                startSync();
             } else {
-                applySpectatorMode();
+                document.getElementById('loginOverlay').style.display = 'none';
+                startSync();
             }
-            // Skip login screen, start sync immediately
-            document.getElementById('loginOverlay').style.display = 'none';
-            startSync();
-        } else {
-            // No credentials? Show Login Screen
-            document.getElementById('loginOverlay').style.display = 'flex';
         }
     };
 
-    function attemptLogin() {
-        const eid = document.getElementById('eventIdInput').value.trim().toLowerCase();
-        const pin = document.getElementById('adminPinInput').value.trim();
-        if(!eid) return alert("Enter Event ID");
-
-        eventID = eid;
-        if(pin === ADMIN_PIN) {
-            isAdmin = true;
-            document.body.classList.add('admin-mode');
-        } else {
-            isAdmin = false;
-            applySpectatorMode();
-        }
-        
-        document.getElementById('loginOverlay').style.display = 'none';
-        startSync();
+    function doLogin() {
+        const id = document.getElementById('loginId').value.trim().toLowerCase();
+        const pin = document.getElementById('loginPin').value.trim();
+        if(!id) return alert("Enter Event ID");
+        let url = `?event=${id}`;
+        if(pin === PIN) url += `&auth=admin`;
+        window.location.href = url;
     }
 
-    function applySpectatorMode() {
-        // Disable inputs/buttons visually
-        let style = document.createElement('style');
-        style.innerHTML = `button:not(.home-btn), input, select, textarea { pointer-events: none; opacity: 0.8; } .nav-bar button, .nav-bar a { pointer-events: auto; opacity: 1; }`;
-        document.head.appendChild(style);
+    // --- 4. FIREBASE SYNC ---
+    function startSync() {
+        db.ref(`events/${eventID}/keirin`).on('value', snap => {
+            const data = snap.val();
+            if(data) {
+                riders = data.riders || [];
+                heats = data.heats || [];
+                roundCounter = data.roundCounter || 1;
+                updateCats();
+                
+                if(data.isFinished) {
+                    showPhase('phase-standings');
+                    renderResults(data.earlyEnd);
+                } else if(heats.length > 0) {
+                    showPhase('phase-racing');
+                    renderHeats();
+                } else {
+                    showPhase('phase-qualifying');
+                    renderTable();
+                }
+            } else {
+                renderTable(); // New
+            }
+        });
     }
-    
-    // ... (Rest of your sync/save logic remains the same) ...
-    // --- KEIRIN LOGIC ENGINE ---
-    let riders=[], heats=[], roundCounter=1, cats=new Set();
-    const STORAGE_KEY='keirinData_Pkg';
-    const TOTAL_ROUNDS = 2; // Standard Keirin: Heats -> Finals
 
-    window.onload = () => {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        if(data.riders) { riders=data.riders; heats=data.heats; roundCounter=data.roundCounter; updateCats(); }
-        if(heats && heats.length) { 
-            // If rounds are done, show results, else show racing
-            if(roundCounter > TOTAL_ROUNDS) { showPhase('phase-standings'); renderResults(); }
-            else { showPhase('phase-racing'); renderHeats(); }
-        } else { renderTable(); }
-    };
+    function save(finished=false, early=false) {
+        if(!isAdmin) return;
+        db.ref(`events/${eventID}/keirin`).set({
+            riders, heats, roundCounter, 
+            isFinished: finished,
+            earlyEnd: early,
+            lastUpdate: Date.now()
+        });
+    }
 
-    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({riders, heats, roundCounter})); }
-    
+    // --- 5. LOGIC & IMPORT ---
     window.importNames = () => {
-        const lines = document.getElementById('importArea').value.split('\n');
+        const val = document.getElementById('importArea').value;
+        if(!val.trim()) return alert("Paste names first.");
+        
+        const lines = val.split(/\r?\n/);
         lines.forEach(l => {
             if(!l.trim()) return;
-            const parts = l.split(',').map(s => s.trim());
-            let name = parts[0];
-            let bib = '', cat = '';
-            for(let i=1; i<parts.length; i++) {
-                if(!isNaN(parts[i]) && parts[i].length < 5) bib = parts[i];
-                else cat = parts[i];
+            const p = l.split(',').map(s => s.trim());
+            let name = p[0];
+            let bib = '';
+            let cat = '';
+
+            // Parser: Name, Bib, Cat
+            if(p.length > 1) {
+                if(p[1].length < 5 && !isNaN(p[1])) {
+                    bib = p[1];
+                    if(p[2]) cat = p[2];
+                } else {
+                    cat = p[1];
+                }
             }
             riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
         });
-        document.getElementById('importArea').value=''; updateCats(); save(); renderTable();
+        document.getElementById('importArea').value=''; 
+        save();
     }
+
+    window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } }
 
     function updateCats() {
-        cats.clear(); riders.forEach(r=> { if(r.cat) cats.add(r.cat) });
-        const sel = document.getElementById('categoryFilter');
-        sel.innerHTML = '<option value="ALL">Race Everyone</option>';
-        Array.from(cats).sort().forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+        cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
+        const s = document.getElementById('categoryFilter');
+        if(s.options.length-1 !== cats.size) {
+            s.innerHTML='<option value="ALL">All Categories</option>';
+            Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`);
+        }
     }
 
-    window.updateRider = (id, field, val) => {
-        const r = riders.find(x=>x.id==id);
-        if(r) { r[field] = (field==='time') ? parseFloat(val)||999 : val; if(field==='cat') updateCats(); save(); }
+    window.updateRider = (id,f,v) => { 
+        if(!isAdmin) return; 
+        let r=riders.find(x=>x.id==id); 
+        if(r){ r[f]=(f=='time'?parseFloat(v)||999:v); save(); } 
     }
 
     function renderTable() {
-        const tb = document.getElementById('riderTable'); tb.innerHTML='';
+        const tb=document.getElementById('riderTable'); tb.innerHTML='';
         riders.forEach((r,i) => {
-            tb.innerHTML += `<tr>
-                <td>${i+1}</td>
-                <td><input class="num-box" value="${r.bib}" onchange="updateRider(${r.id},'bib',this.value)"></td>
-                <td>${r.name}</td>
-                <td><input style="width:60px" value="${r.cat}" onchange="updateRider(${r.id},'cat',this.value)"></td>
-                <td><input style="width:70px" type="number" value="${r.time===999?'':r.time}" onchange="updateRider(${r.id},'time',this.value)"></td>
-                <td><button onclick="delRider(${r.id})" style="color:red; font-weight:bold;">X</button></td>
-            </tr>`;
+            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" style="color:red; font-weight:bold;">X</button>` : '';
+            let inputs = isAdmin ? 
+                `<td><input style="width:40px" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
+                 <td>${r.name}</td>
+                 <td><input style="width:40px" value="${r.cat||''}" onchange="updateRider(${r.id},'cat',this.value)"></td>
+                 <td><input style="width:60px" type="number" value="${r.time===999?'':r.time}" onchange="updateRider(${r.id},'time',this.value)"></td>` :
+                `<td>${r.bib||''}</td><td>${r.name}</td><td>${r.cat||''}</td><td>${r.time===999?'-':r.time}</td>`;
+            tb.innerHTML+=`<tr><td>${i+1}</td>${inputs}<td>${ctrl}</td></tr>`;
         });
     }
-    
-    window.delRider = (id) => { riders=riders.filter(r=>r.id!=id); save(); renderTable(); updateCats(); }
 
+    // --- 6. HEATS & RACING (KEIRIN RULES) ---
     window.generateHeats = () => {
         const cat = document.getElementById('categoryFilter').value;
-        let pool = cat==='ALL' ? [...riders] : riders.filter(r=>r.cat===cat);
+        let pool = (cat==='ALL') ? [...riders] : riders.filter(r=>r.cat===cat);
         
-        if(pool.length<4) return alert("Need at least 4 riders for Keirin.");
+        if(pool.length<4) return alert("Need 4+ riders for Keirin.");
         pool.sort((a,b)=>a.time-b.time);
         
         heats=[]; 
-        let c=65; // 'A'
+        let c=65; // A
         while(pool.length) {
-            let s=6; // Keirin is usually 6-up
+            let s=6; // Keirin Groups of 6
             let hr=[]; for(let i=0;i<s;i++) if(pool.length) hr.push(pool.shift());
             heats.push({name:"Heat "+String.fromCharCode(c++), riders:hr, res:[]});
         }
-        roundCounter=1; save(); showPhase('phase-racing'); renderHeats();
+        roundCounter=1; save();
     }
 
     function renderHeats() {
-        const c = document.getElementById('heatsContainer'); c.innerHTML='';
-        document.getElementById('roundBadge').innerText = roundCounter===TOTAL_ROUNDS ? "FINAL ROUND" : "Round "+roundCounter;
+        const c=document.getElementById('heatsContainer'); c.innerHTML='';
+        document.getElementById('roundBadge').innerText = roundCounter >= TOTAL_ROUNDS ? "FINAL ROUND" : "Round "+roundCounter;
         
         heats.forEach((h,i) => {
-            let html = `<div class="heat-card"><div class="heat-header"><span>${h.name}</span> <small>${h.riders.length} Riders</small></div><div class="heat-body">`;
+            let html=`<div class="heat-card"><div class="heat-header"><span>${h.name}</span> <span style="font-size:0.8em; opacity:0.8;">${h.riders.length} Riders</span></div><div class="heat-body">`;
             h.riders.forEach(r => {
                 let idx = h.res.indexOf(r.id);
-                let cls = '';
-                let status = '';
+                let cls='', status='';
                 
                 if(idx !== -1) {
-                    // Logic for Round 1
                     if(roundCounter < TOTAL_ROUNDS) {
+                         // Standard Round: Top 2 Up, Bottom 2 Down
                          if(idx <= 1) { cls='pos-top'; status='⬆️ Up'; }
                          else if(idx >= h.riders.length-2) { cls='pos-bot'; status='⬇️ Down'; }
                          else { cls='pos-mid'; status='↔️ Stay'; }
                     } else {
-                        // Logic for Finals (Gold/Silver/Bronze)
+                        // Finals: 1st is Gold
                         if(idx===0) cls='pos-top'; 
                     }
                 }
                 
-                let bibDisplay = r.bib ? `<span style="background:#333; color:white; padding:2px 6px; border-radius:4px; font-weight:bold; margin-right:8px;">${r.bib}</span>` : '';
-                
-                html += `<div class="rider-select ${cls}" onclick="clickRider(${i},${r.id})">
-                    <div>${bibDisplay} <strong>${r.name}</strong></div>
-                    <div style="font-size:0.9em;">${idx!==-1 ? (idx+1)+ordinal(idx+1) : ''} ${status}</div>
+                let bibBadge = r.bib ? `<span style="background:#333; color:white; padding:2px 5px; border-radius:4px; font-size:0.8em; margin-right:5px;">#${r.bib}</span>` : '';
+
+                html+=`<div class="rider-select ${cls}" onclick="res(${i},${r.id})">
+                    <div>${bibBadge} <strong>${r.name}</strong></div>
+                    <div style="font-size:0.9em;">${idx!==-1 ? (idx+1) : ''} ${status}</div>
                 </div>`;
             });
-            c.innerHTML += html + '</div></div>';
+            c.innerHTML+=html+'</div></div>';
         });
     }
 
-    window.clickRider = (hi, rid) => {
-        let h = heats[hi];
-        h.res.includes(rid) ? h.res=h.res.filter(x=>x!=rid) : h.res.push(rid);
-        save(); renderHeats();
+    window.res = (hi,rid) => { 
+        if(!isAdmin) return; 
+        let h=heats[hi]; 
+        h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); 
+        save(); 
     }
 
+    // --- 7. PROMOTION (KEIRIN RULES) ---
     window.finishRound = () => {
-        for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats first.");
+        for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats.");
         
-        // If we just finished the finals
-        if(roundCounter >= TOTAL_ROUNDS) { 
-            roundCounter++; // Increment to lock state
-            save(); 
-            showPhase('phase-standings'); 
-            renderResults(); 
-            return; 
-        }
+        if(roundCounter >= TOTAL_ROUNDS) { save(true); return; }
         
-        // LOGIC: SWAP RIDERS (Top 2 Up, Bottom 2 Down)
-        let next = heats.map(()=>[]);
-        heats.forEach((h,i) => {
+        let next=heats.map(()=>[]);
+        heats.forEach((h,i)=>{
             h.res.forEach((rid, idx) => {
                 let r = riders.find(x=>x.id==rid);
                 let isTop = idx<=1;
                 let isBot = idx>=h.riders.length-2;
                 
-                // If Top 2: Move to i-1 (unless already in Heat A [0])
+                // Top 2 Up (Limit 0)
                 if(isTop) { i===0 ? next[0].push(r) : next[i-1].push(r); }
-                // If Bottom 2: Move to i+1 (unless already in last heat)
+                // Bottom 2 Down (Limit End)
                 else if(isBot) { i===heats.length-1 ? next[i].push(r) : next[i+1].push(r); }
                 // Else Stay
                 else { next[i].push(r); }
             });
         });
+        heats=next.map((rs,i)=>({name:heats[i].name, riders:rs, res:[]}));
+        roundCounter++; save();
+    }
+
+    window.endEventEarly = () => { 
+        if(confirm("End event now? Un-raced heats will be ranked by Qualifying Time.")) save(true, true); 
+    }
+
+    function renderResults(earlyEnd) {
+        const tb=document.getElementById('resultsBody'); tb.innerHTML='';
+        let rank=1;
         
-        // Rebuild objects
-        heats = next.map((rs,i) => ({ name: heats[i].name, riders: rs, res:[] }));
-        roundCounter++; save(); renderHeats();
-    }
-
-    <div style="text-align:right; margin-bottom:10px;">
-    <button class="btn btn-clear" style="font-size:0.8em;" onclick="endEventEarly()">⚠ End Event Early</button>
-</div>
-
-    function ordinal(n) {
-        const s = ["th", "st", "nd", "rd"];
-        const v = n % 100;
-        return s[(v - 20) % 10] || s[v] || s[0];
-    }
-
-    function showPhase(id) {
-        ['phase-qualifying','phase-racing','phase-standings'].forEach(p=>document.getElementById(p).classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-    }
-    
-    window.hardReset = () => { 
-        if(confirm("This will wipe all race data. Are you sure?")) {
-            localStorage.removeItem(STORAGE_KEY); location.reload(); 
-        }
-    }
-</script>
-</body>
-</html>
+        heats.forEach(h => {
+            let raced = (h.res && h.res.length===h.riders.length);
+            // If raced, sort by finish. If not, sort by Time.
