@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprint Ladder</title>
-    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -16,51 +15,41 @@
         :root { --primary: #002366; --accent: #E30613; --bg: #f5f5f5; --card: #ffffff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 80px; }
         
-        /* NAV & HEADER */
         .nav-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .nav-group { display: flex; align-items: center; gap: 10px; }
         .home-btn { text-decoration: none; background: #ddd; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: #333; }
         .unlock-btn { background: none; border: 1px solid #999; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; color: #666; }
         
-        /* SPONSOR */
         .sponsor-mini { margin-bottom: 20px; padding: 10px; background: white; border-bottom: 4px solid #00d2ff; text-align: center; }
-
-        /* CARDS */
         .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .hidden { display: none !important; }
         
-        /* BUTTONS */
         .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn-action { width: 100%; background: #28a745; margin-top: 10px; padding: 15px; font-size: 1.1em; }
-        .btn-danger { background: var(--accent); font-size: 0.8em; }
+        .btn-danger { background: var(--accent); font-size: 0.8em; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+        .btn-secondary { background: #6c757d; font-size: 0.9em; margin-bottom: 10px; }
         
-        /* TABLES & INPUTS */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #eee; text-align: left; padding: 10px; border-bottom: 2px solid #ccc; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
         input.num-box { width: 50px; text-align: center; font-weight: bold; }
         textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
 
-        /* HEAT GRID */
         .heat-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .heat-card { background: white; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .heat-header { background: var(--primary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        
         .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ADMIN VS SPECTATOR VISIBILITY */
         body.admin-mode .rider-select:hover { background: #f0f0f0; }
-        body:not(.admin-mode) .rider-select { pointer-events: none; } /* Disable clicking for spectators */
-        body:not(.admin-mode) .admin-only { display: none !important; } /* Hide buttons for spectators */
-        body.admin-mode .spectator-only { display: none !important; } /* Hide "Unlock" button for admins */
+        body:not(.admin-mode) .rider-select { pointer-events: none; }
+        body:not(.admin-mode) .admin-only { display: none !important; }
+        body.admin-mode .spectator-only { display: none !important; }
 
-        /* COLORS */
         .pos-1 { background: #d4edda; border-left: 5px solid #28a745; } 
         .pos-2 { background: #fff3cd; border-left: 5px solid #ffc107; } 
         .pos-3 { background: #f8d7da; border-left: 5px solid #dc3545; }
         .rank-1 { background: #fff9c4; font-weight: bold; }
 
-        /* LOGIN OVERLAY */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #002366; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
@@ -81,10 +70,6 @@
         <button class="unlock-btn spectator-only" onclick="requestAdmin()">🔓 Admin Login</button>
     </div>
 
-    <div class="spectator-only" style="background:#e3f2fd; padding:10px; margin-bottom:20px; border-radius:5px; text-align:center; color:#002366; font-size:0.9em;">
-        👁️ <strong>Spectator Mode:</strong> View only. To edit, click "Admin Login".
-    </div>
-
     <div id="loginOverlay">
         <h3>Event Access</h3>
         <input id="loginId" placeholder="Event ID" style="padding:10px; width:200px; margin-bottom:10px;">
@@ -95,11 +80,13 @@
     <div id="phase-qualifying" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>1. Registration</h3>
-            <button class="btn btn-danger admin-only" onclick="wipeEvent()">🗑 Reset Data</button>
+            <div class="admin-only">
+                <button class="btn btn-danger" onclick="wipeEvent()">🗑 Reset Event</button>
+            </div>
         </div>
         
         <div class="admin-only">
-            <p style="color:#666; font-size:0.9em;">Format: <strong>Name, Bib, Cat</strong> (e.g. "John, 101, A")</p>
+            <p style="color:#666; font-size:0.9em;">Format: <strong>Name, Bib, Cat</strong></p>
             <textarea id="importArea" placeholder="John Smith, 101, A&#10;Jane Doe, 102, B"></textarea>
             <button class="btn" onclick="importNames()">Import Riders</button>
         </div>
@@ -112,7 +99,7 @@
         </div>
         
         <div class="admin-only" style="margin-top:15px; padding:10px; background:#e3f2fd; border-radius:4px;">
-            <strong>Race Category:</strong> <select id="categoryFilter" style="padding:5px;"><option value="ALL">All Categories</option></select>
+            <strong>Category:</strong> <select id="categoryFilter" style="padding:5px;"><option value="ALL">All Categories</option></select>
         </div>
         <button class="btn btn-action admin-only" onclick="generateHeats()">GENERATE HEATS &rarr;</button>
     </div>
@@ -122,8 +109,11 @@
             <h3>Race Card</h3>
             <span style="background:#eee; padding:5px 10px; border-radius:10px; font-weight:bold;" id="roundBadge">Round 1</span>
         </div>
-        <p class="admin-only" style="font-size:0.9em; color:#002366; background:#e3f2fd; padding:5px;"><strong>Admin:</strong> Click Winner (Green) then Loser (Red).</p>
         
+        <div class="admin-only" style="margin-bottom:15px;">
+            <button class="btn btn-secondary" onclick="forcePhase('phase-qualifying')">✏️ Modify Entry / Add Riders</button>
+        </div>
+
         <div id="heatsContainer" class="heat-container"></div>
         
         <div class="admin-only">
@@ -140,13 +130,6 @@
             <thead><tr><th>Rank</th><th>Bib</th><th>Name</th><th>Cat</th><th>Time</th><th>Heat</th></tr></thead>
             <tbody id="resultsBody"></tbody>
         </table>
-        
-        <div style="margin-top:30px; padding:15px; background:#f9f9f9; border-radius:8px; font-size:0.9em; color:#555; text-align:center;">
-            <em>Like this software?</em><br>
-            I can build custom schedulers and rotas for you.<br>
-            <a href="mailto:your-email@example.com" style="color:#002366; font-weight:bold;">Contact the Developer</a>
-        </div>
-
         <button class="btn admin-only" onclick="wipeEvent()" style="margin-top:20px; background:#666; width:100%;">Start New Event</button>
     </div>
 
@@ -155,7 +138,7 @@
     </div>
 
 <script>
-    // --- 1. YOUR FIREBASE KEYS ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
       authDomain: "sprintfutures.firebaseapp.com",
@@ -166,17 +149,16 @@
       measurementId: "G-9XFQV3PLEV"
     };
 
-    // Initialize
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 2. STATE ---
+    // --- STATE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
     let eventID = "";
     let isAdmin = false;
-    const PIN = "1234"; // Default PIN
+    const PIN = "1234"; 
 
-    // --- 3. INIT & LOGIN ---
+    // --- INIT ---
     window.onload = () => {
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
@@ -189,7 +171,6 @@
             if(urlAuth === 'admin') {
                 enableAdmin();
             } else {
-                // Default to spectator, hide login
                 document.getElementById('loginOverlay').style.display = 'none';
                 startSync();
             }
@@ -203,7 +184,6 @@
         startSync();
     }
 
-    // Called by the main Login Overlay
     function doLogin() {
         const id = document.getElementById('loginId').value.trim().toLowerCase();
         const pin = document.getElementById('loginPin').value.trim();
@@ -214,220 +194,14 @@
         window.location.href = url;
     }
 
-    // Called by the top-right "Unlock" button
     function requestAdmin() {
         const pin = prompt("Enter Admin PIN:");
-        if(pin === PIN) {
-            // Reload page with admin params
-            window.location.href = window.location.href + "&auth=admin";
-        } else {
-            alert("Incorrect PIN");
-        }
+        if(pin === PIN) window.location.href = window.location.href + "&auth=admin";
+        else alert("Incorrect PIN");
     }
 
-    // --- 4. FIREBASE SYNC ---
+    // --- FIREBASE SYNC ---
     function startSync() {
         db.ref(`events/${eventID}/sprint`).on('value', snap => {
             const data = snap.val();
             if(data) {
-                riders = data.riders || [];
-                heats = data.heats || [];
-                roundCounter = data.roundCounter || 1;
-                updateCats();
-                
-                if(data.isFinished) {
-                    showPhase('phase-standings');
-                    renderResults(data.earlyEnd); // Pass flag if ended early
-                } else if(heats.length > 0) {
-                    showPhase('phase-racing');
-                    renderHeats();
-                } else {
-                    showPhase('phase-qualifying');
-                    renderTable();
-                }
-            } else {
-                renderTable(); // New Event
-            }
-        });
-    }
-
-    function save(finished=false, early=false) {
-        if(!isAdmin) return;
-        db.ref(`events/${eventID}/sprint`).set({
-            riders, heats, roundCounter, 
-            isFinished: finished,
-            earlyEnd: early,
-            lastUpdate: Date.now()
-        });
-    }
-
-    // --- 5. LOGIC & IMPORT ---
-    window.importNames = () => {
-        const val = document.getElementById('importArea').value;
-        if(!val.trim()) return alert("Paste names first.");
-        
-        const lines = val.split(/\r?\n/);
-        lines.forEach(l => {
-            if(!l.trim()) return;
-            const p = l.split(',').map(s => s.trim());
-            
-            let name = p[0];
-            let bib = '';
-            let cat = '';
-
-            // Parser: Name, Bib, Cat OR Name, Cat
-            if(p.length > 1) {
-                if(p[1].length < 5 && !isNaN(p[1])) {
-                    bib = p[1];
-                    if(p[2]) cat = p[2];
-                } else {
-                    cat = p[1];
-                }
-            }
-            riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
-        });
-        document.getElementById('importArea').value=''; 
-        save();
-    }
-
-    window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } }
-
-    function updateCats() {
-        cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
-        const s = document.getElementById('categoryFilter');
-        if(s.options.length-1 !== cats.size) {
-            s.innerHTML='<option value="ALL">All Categories</option>';
-            Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`);
-        }
-    }
-
-    window.updateRider = (id,f,v) => { 
-        if(!isAdmin) return; 
-        let r=riders.find(x=>x.id==id); 
-        if(r){ r[f]=(f=='time'?parseFloat(v)||999:v); save(); } 
-    }
-
-    function renderTable() {
-        const tb=document.getElementById('riderTable'); tb.innerHTML='';
-        riders.forEach((r,i) => {
-            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" style="color:red; font-weight:bold;">X</button>` : '';
-            let inputs = isAdmin ? 
-                `<td><input style="width:40px" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
-                 <td>${r.name}</td>
-                 <td><input style="width:40px" value="${r.cat||''}" onchange="updateRider(${r.id},'cat',this.value)"></td>
-                 <td><input style="width:60px" type="number" value="${r.time===999?'':r.time}" onchange="updateRider(${r.id},'time',this.value)"></td>` :
-                `<td>${r.bib||''}</td><td>${r.name}</td><td>${r.cat||''}</td><td>${r.time===999?'-':r.time}</td>`;
-            tb.innerHTML+=`<tr><td>${i+1}</td>${inputs}<td>${ctrl}</td></tr>`;
-        });
-    }
-
-    // --- 6. HEATS & RACING ---
-    window.generateHeats = () => {
-        const cat = document.getElementById('categoryFilter').value;
-        let pool = (cat==='ALL') ? [...riders] : riders.filter(r=>r.cat===cat);
-        
-        if(pool.length<2) return alert("Need 2+ riders.");
-        pool.sort((a,b)=>a.time-b.time);
-        
-        heats=[]; 
-        // Heat A always 2
-        if(pool.length>=2) heats.push({name:"Heat A", riders:[pool.shift(), pool.shift()], res:[]});
-        
-        let c=66; // B
-        while(pool.length) {
-            let s=3; 
-            if(pool.length===4 || pool.length===2) s=2;
-            if(pool.length===1) { if(heats.length) heats[heats.length-1].riders.push(pool.shift()); continue; }
-            let hr=[]; for(let i=0;i<s;i++) if(pool.length) hr.push(pool.shift());
-            heats.push({name:"Heat "+String.fromCharCode(c++), riders:hr, res:[]});
-        }
-        roundCounter=1; save();
-    }
-
-    function renderHeats() {
-        const c=document.getElementById('heatsContainer'); c.innerHTML='';
-        document.getElementById('roundBadge').innerText = "Round "+roundCounter;
-        
-        heats.forEach((h,i) => {
-            let html=`<div class="heat-card"><div class="heat-header"><span>${h.name}</span> <span style="font-size:0.8em; opacity:0.8;">${h.riders.length} Riders</span></div><div class="heat-body">`;
-            h.riders.forEach(r => {
-                let cls='', idx=h.res.indexOf(r.id);
-                if(idx!==-1) cls = (idx===0?'pos-1':(idx===h.riders.length-1&&idx>0?'pos-3':'pos-2'));
-                
-                let bibBadge = r.bib ? `<span style="background:#333; color:white; padding:2px 5px; border-radius:4px; font-size:0.8em; margin-right:5px;">#${r.bib}</span>` : '';
-
-                html+=`<div class="rider-select ${cls}" onclick="res(${i},${r.id})">
-                    <div>${bibBadge} <strong>${r.name}</strong></div>
-                    <div style="font-size:0.9em;">${r.time===999?'-':r.time}s</div>
-                </div>`;
-            });
-            c.innerHTML+=html+'</div></div>';
-        });
-    }
-
-    window.res = (hi,rid) => { 
-        if(!isAdmin) return; 
-        let h=heats[hi]; 
-        h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); 
-        save(); 
-    }
-
-    // --- 7. PROMOTION & RESULTS ---
-    window.finishRound = () => {
-        for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats.");
-        
-        if(roundCounter>=3) { save(true); return; }
-        
-        let next=heats.map(()=>[]);
-        heats.forEach((h,i)=>{
-            let w=h.res[0], l=h.res[h.res.length-1];
-            i===0 ? next[0].push(riders.find(x=>x.id==w)) : next[i-1].push(riders.find(x=>x.id==w));
-            i===heats.length-1 ? next[i].push(riders.find(x=>x.id==l)) : next[i+1].push(riders.find(x=>x.id==l));
-            for(let k=1; k<h.res.length-1; k++) next[i].push(riders.find(x=>x.id==h.res[k]));
-        });
-        heats=next.map((rs,i)=>({name:heats[i].name, riders:rs, res:[]}));
-        roundCounter++; save();
-    }
-
-    window.endEventEarly = () => { 
-        if(confirm("End event now? Un-raced heats will be ranked by Qualifying Time.")) save(true, true); 
-    }
-
-    function renderResults(earlyEnd) {
-        const tb=document.getElementById('resultsBody'); tb.innerHTML='';
-        let rank=1;
-        
-        heats.forEach(h => {
-            let raced = (h.res && h.res.length===h.riders.length);
-            let sorted = raced ? h.res.map(id=>riders.find(x=>x.id==id)) : [...h.riders].sort((a,b)=>a.time-b.time);
-            
-            sorted.forEach((r,idx) => {
-                let cls = rank===1?'rank-1':'';
-                let note = raced ? `${h.name} (${idx+1}${ordinal(idx+1)})` : `${h.name} (Seeded)`;
-                
-                // SAFETY CHECK: r might be undefined if logic drifted, prevent crash
-                if(r) {
-                    let catDisplay = r.cat || '';
-                    let bibDisplay = r.bib || '';
-                    
-                    tb.innerHTML+=`<tr class="${cls}">
-                        <td>${rank++}</td>
-                        <td>${bibDisplay}</td>
-                        <td><strong>${r.name}</strong></td>
-                        <td>${catDisplay}</td>
-                        <td>${r.time}</td>
-                        <td style="font-size:0.8em; color:#666;">${note}</td>
-                    </tr>`;
-                }
-            });
-        });
-    }
-
-    function ordinal(n) { const s=["th","st","nd","rd"], v=n%100; return s[(v-20)%10]||s[v]||s[0]; }
-    function showPhase(id) {
-        ['phase-qualifying','phase-racing','phase-standings'].forEach(p=>document.getElementById(p).classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-    }
-</script>
-</body>
-</html>
