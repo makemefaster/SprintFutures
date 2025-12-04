@@ -46,13 +46,14 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6">
 
-        <!-- Login Overlay (If accessed directly without event ID) -->
+        <!-- Login Overlay -->
         <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
             <h3 class="text-2xl font-bold mb-4">Event Access</h3>
             <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm w-full max-w-sm space-y-3">
                 <input id="loginId" placeholder="Event ID" class="w-full p-3 rounded bg-white text-slate-900 font-bold">
                 <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" class="w-full p-3 rounded bg-white text-slate-900">
                 <button onclick="doLogin()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded font-bold transition">ENTER RACE CENTRE</button>
+                <p id="initStatus" class="text-xs text-slate-400 text-center mt-2">Ready</p>
             </div>
         </div>
 
@@ -157,31 +158,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // 1. FIREBASE CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-            authDomain: "sprintfutures.firebaseapp.com",
-            projectId: "sprintfutures",
-            storageBucket: "sprintfutures.firebasestorage.app",
-            messagingSenderId: "535060943616",
-            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-            measurementId: "G-9XFQV3PLEV"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // 2. STATE
-        let riders = [];
-        let heats = [];
-        let roundCounter = 1;
-        let cats = new Set();
-        let eventID = "";
-        let isAdmin = false;
-        const PIN = "1234"; 
-        const TOTAL_ROUNDS = 2; // Heat -> Final
-
-        // 3. EXPOSE FUNCTIONS TO WINDOW
+        // 1. EXPOSE FUNCTIONS
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } };
         window.importNames = importNames;
         window.updateRider = updateRider;
@@ -191,7 +168,41 @@
         window.endEventEarly = () => { if(confirm("End event now?")) save(true, true); };
         window.doLogin = doLogin;
 
-        // 4. INIT
+        // 2. FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+            authDomain: "sprintfutures.firebaseapp.com",
+            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com", // Added for Realtime DB
+            projectId: "sprintfutures",
+            storageBucket: "sprintfutures.firebasestorage.app",
+            messagingSenderId: "535060943616",
+            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+            measurementId: "G-9XFQV3PLEV"
+        };
+
+        // 3. SAFE INITIALIZATION
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            console.log("Firebase initialized");
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            document.getElementById('initStatus').innerText = "Database Error (Check Console)";
+            document.getElementById('initStatus').className = "text-red-500 font-bold mt-2";
+        }
+
+        // 4. STATE
+        let riders = [];
+        let heats = [];
+        let roundCounter = 1;
+        let cats = new Set();
+        let eventID = "";
+        let isAdmin = false;
+        const PIN = "1234"; 
+        const TOTAL_ROUNDS = 2; // Heat -> Final
+
+        // 5. INIT LOGIC
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
         const urlAuth = p.get('auth');
@@ -215,12 +226,21 @@
             const id = document.getElementById('loginId').value.trim().toLowerCase();
             const pin = document.getElementById('loginPin').value.trim();
             if(!id) return alert("Enter Event ID");
-            let url = `?event=${id}`;
-            if(pin === PIN) url += `&auth=admin`;
-            window.location.href = url;
+            
+            // Fix: Use URL object to construct safe URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            
+            if(pin === PIN) {
+                url.searchParams.set('auth', 'admin');
+            }
+            
+            window.location.href = url.toString();
         }
 
         function startSync() {
+            if(!db) return;
+            
             onValue(ref(db, `events/${eventID}/keirin`), (snap) => {
                 const data = snap.val();
                 if(data) {
@@ -247,7 +267,7 @@
         }
 
         function save(finished=false, early=false) {
-            if(!isAdmin) return;
+            if(!isAdmin || !db) return;
             set(ref(db, `events/${eventID}/keirin`), {
                 riders, heats, roundCounter, 
                 isFinished: finished,
