@@ -108,19 +108,17 @@
     <script>
         // --- 1. FIREBASE CONFIGURATION (YOUR KEYS) ---
         const firebaseConfig = {
-            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-            authDomain: "sprintfutures.firebaseapp.com",
-            projectId: "sprintfutures",
-            storageBucket: "sprintfutures.firebasestorage.app",
-            messagingSenderId: "535060943616",
-            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-            measurementId: "G-9XFQV3PLEV"
-        };
+    apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+  authDomain: "sprintfutures.firebaseapp.com",
+  projectId: "sprintfutures",
+  storageBucket: "sprintfutures.firebasestorage.app",
+  messagingSenderId: "535060943616",
+  appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+  measurementId: "G-9XFQV3PLEV"
+};
 
-        // Initialize Firebase (Compat Mode)
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        // ✅ REPLACE WITH THIS NEW CODE
+const app = initializeApp(firebaseConfig);
 
         // --- 2. PWA INSTALLER ---
         if ('serviceWorker' in navigator) {
