@@ -238,6 +238,22 @@
         }
         function forcePhase(p) { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); }
 
+        function importNames() {
+            const val = document.getElementById('importArea').value;
+            if(!val.trim()) return alert("Paste names first.");
+            val.split(/\r?\n/).forEach(l => {
+                if(!l.trim()) return;
+                const p = l.split(',').map(s=>s.trim());
+                let name=p[0], bib='', cat='';
+                if(p.length > 1) {
+                    if(p[1].length < 5 && !isNaN(p[1])) { bib=p[1]; if(p[2]) cat=p[2]; } 
+                    else { cat=p[1]; }
+                }
+                riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
+            });
+            document.getElementById('importArea').value=''; save();
+        }
+
         function updateCats() {
             cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
             const s = document.getElementById('categoryFilter');
