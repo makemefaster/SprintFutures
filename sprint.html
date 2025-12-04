@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprint Ladder</title>
-    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -25,6 +24,16 @@
         .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .hidden { display: none !important; }
         
+        /* ADMIN CONTROLS */
+        .admin-only { display: none; } /* Hidden by default */
+        body.admin-mode .admin-only { display: block !important; } /* Visible if Admin */
+        body.admin-mode .spectator-only { display: none !important; } /* Hide spectator stuff if Admin */
+
+        /* INTERACTION */
+        .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        body.admin-mode .rider-select:hover { background: #f0f0f0; }
+        body:not(.admin-mode) .rider-select { pointer-events: none; }
+
         .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn-action { width: 100%; background: #28a745; margin-top: 10px; padding: 15px; font-size: 1.1em; }
         .btn-danger { background: var(--accent); font-size: 0.8em; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
@@ -39,13 +48,7 @@
         .heat-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .heat-card { background: white; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .heat-header { background: var(--primary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        body.admin-mode .rider-select:hover { background: #f0f0f0; }
-        body:not(.admin-mode) .rider-select { pointer-events: none; }
-        body:not(.admin-mode) .admin-only { display: none !important; }
-        body.admin-mode .spectator-only { display: none !important; }
-
         .pos-1 { background: #d4edda; border-left: 5px solid #28a745; } 
         .pos-2 { background: #fff3cd; border-left: 5px solid #ffc107; } 
         .pos-3 { background: #f8d7da; border-left: 5px solid #dc3545; }
@@ -76,6 +79,7 @@
         <input id="loginId" placeholder="Event ID" style="padding:10px; width:200px; margin-bottom:10px;">
         <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" style="padding:10px; width:200px; margin-bottom:10px;">
         <button onclick="doLogin()" style="padding:10px 20px; font-weight:bold; cursor:pointer;">ENTER</button>
+        <div id="statusMsg" style="margin-top:10px; font-size:0.8em; color:#aaa;">System Ready</div>
     </div>
 
     <div id="phase-qualifying" class="card hidden">
@@ -134,12 +138,8 @@
         <button class="btn admin-only" onclick="wipeEvent()" style="margin-top:20px; background:#666; width:100%;">Start New Event</button>
     </div>
 
-    <div style="text-align:center; margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
-        <a href="https://www.buymeacoffee.com/YOUR_LINK" target="_blank" style="background:#FFDD00; color:black; padding:10px 20px; border-radius:20px; text-decoration:none; border:2px solid black; font-weight:bold;">☕ Buy me a Beer</a>
-    </div>
-
 <script>
-    // --- FIREBASE CONFIG ---
+    // --- 1. CONFIGURATION ---
     const firebaseConfig = {
       apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
       authDomain: "sprintfutures.firebaseapp.com",
@@ -150,16 +150,26 @@
       measurementId: "G-9XFQV3PLEV"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    // --- 2. INITIALIZATION (With Error Handling) ---
+    let app, db;
+    try {
+        if (typeof firebase === 'undefined') throw new Error("Firebase SDK not loaded");
+        app = firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        console.log("✅ Firebase Connected");
+    } catch (e) {
+        alert("CRITICAL ERROR: Could not connect to database.\n\n" + e.message);
+        document.getElementById('statusMsg').innerText = "Database Error";
+        document.getElementById('statusMsg').style.color = "red";
+    }
 
-    // --- STATE ---
+    // --- 3. STATE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
     let eventID = "";
     let isAdmin = false;
-    const PIN = "1234"; 
+    const PIN = "1234";
 
-    // --- INIT ---
+    // --- 4. STARTUP LOGIC ---
     window.onload = () => {
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
@@ -178,13 +188,7 @@
         }
     };
 
-    function enableAdmin() {
-        isAdmin = true;
-        document.body.classList.add('admin-mode');
-        document.getElementById('loginOverlay').style.display = 'none';
-        startSync();
-    }
-
+    // --- 5. AUTHENTICATION ---
     function doLogin() {
         const id = document.getElementById('loginId').value.trim().toLowerCase();
         const pin = document.getElementById('loginPin').value.trim();
@@ -201,18 +205,27 @@
         else alert("Incorrect PIN");
     }
 
-    // --- FIREBASE SYNC ---
+    function enableAdmin() {
+        isAdmin = true;
+        document.body.classList.add('admin-mode');
+        document.getElementById('loginOverlay').style.display = 'none';
+        startSync();
+    }
+
+    // --- 6. DATA SYNC ---
     function startSync() {
+        if(!db) return;
+        
         db.ref(`events/${eventID}/sprint`).on('value', snap => {
             const data = snap.val();
             if(data) {
-                // Existing Event Data Found
+                // LOAD EXISTING DATA
                 riders = data.riders || [];
                 heats = data.heats || [];
                 roundCounter = data.roundCounter || 1;
                 updateCats();
                 
-                // Route to correct screen
+                // ROUTE TO CORRECT SCREEN
                 if(!window.manualPhase) {
                     if(data.isFinished) {
                         showPhase('phase-standings');
@@ -226,8 +239,7 @@
                     }
                 }
             } else {
-                // NEW EVENT (Empty Database)
-                // This is the fix: Force show the import screen
+                // NEW EVENT
                 renderTable(); 
                 showPhase('phase-qualifying');
             }
@@ -235,7 +247,7 @@
     }
 
     function save(finished=false, early=false) {
-        if(!isAdmin) return;
+        if(!isAdmin || !db) return;
         db.ref(`events/${eventID}/sprint`).set({
             riders, heats, roundCounter, 
             isFinished: finished,
@@ -244,14 +256,13 @@
         });
     }
 
-    // --- MANUAL OVERRIDE ---
+    // --- 7. CORE FUNCTIONS ---
     window.forcePhase = (phaseId) => {
         window.manualPhase = true;
         showPhase(phaseId);
         if(phaseId === 'phase-qualifying') renderTable();
     }
 
-    // --- LOGIC ---
     window.importNames = () => {
         const val = document.getElementById('importArea').value;
         if(!val.trim()) return alert("Paste names first.");
@@ -263,14 +274,10 @@
             let name = p[0];
             let bib = '';
             let cat = '';
-
+            // Smart Parse
             if(p.length > 1) {
-                if(p[1].length < 5 && !isNaN(p[1])) {
-                    bib = p[1];
-                    if(p[2]) cat = p[2];
-                } else {
-                    cat = p[1];
-                }
+                if(p[1].length < 5 && !isNaN(p[1])) { bib = p[1]; if(p[2]) cat = p[2]; } 
+                else { cat = p[1]; }
             }
             riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
         });
@@ -309,18 +316,15 @@
         });
     }
 
-    // --- HEATS ---
     window.generateHeats = () => {
         const cat = document.getElementById('categoryFilter').value;
         let pool = (cat==='ALL') ? [...riders] : riders.filter(r=>r.cat===cat);
-        
         if(pool.length<2) return alert("Need 2+ riders.");
         pool.sort((a,b)=>a.time-b.time);
         
         heats=[]; 
         if(pool.length>=2) heats.push({name:"Heat A", riders:[pool.shift(), pool.shift()], res:[]});
-        
-        let c=66; // B
+        let c=66;
         while(pool.length) {
             let s=3; 
             if(pool.length===4 || pool.length===2) s=2;
