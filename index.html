@@ -3,152 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Test</title>
-</head>
-<body>
-    <h1>Testing Firebase...</h1>
-    
-    
-
-<script type="module">
-    // 1. IMPORT the tools (This fixes "initializeApp is not defined")
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-
-    // 2. CONFIGURE the connection (This fixes "projectId not provided")
-    // Go to Firebase Console -> Project Settings -> General -> "Your Apps" -> copy the config
-    const firebaseConfig = {
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-  authDomain: "sprintfutures.firebaseapp.com",
-  projectId: "sprintfutures",
-  storageBucket: "sprintfutures.firebasestorage.app",
-  messagingSenderId: "535060943616",
-  appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-  measurementId: "G-9XFQV3PLEV"
-    };
-
-    // 3. START the app
-    console.log("Attempting to initialize app...");
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 4. TEST the connection
-    async function testConnection() {
-        try {
-            console.log("Attempting to write to database...");
-            const docRef = await addDoc(collection(db, "testCollection"), {
-                message: "Hello Firebase!",
-                timestamp: new Date()
-            });
-            console.log("✅ SUCCESS: Connection works! Document written with ID: ", docRef.id);
-        } catch (e) {
-            console.error("❌ ERROR: Could not connect to Firebase.", e);
+    <title>Sprint Futures | Race Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom animation for the gradient border */
+        .gradient-border {
+            position: relative;
+            background: #fff;
+            border-radius: 1rem;
         }
-    }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 1.2rem;
+            background: linear-gradient(45deg, #FF6B00, #FF0055);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .gradient-border:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
 
-    testConnection();
-</script>
-</body>
-</html>
-
-    <a href="https://www.frequencycycleworks.com/" target="_blank" style="text-decoration: none; color: inherit;">
-        <div class="sponsor-bar">
-            <div style="font-size:0.7em; color:#888; text-transform:uppercase; letter-spacing: 1px;">Official Partner</div>
-            <div style="font-weight:bold; font-size:1.3em;">FREQUENCY <span style="color:#00d2ff">CYCLEWORKS</span></div>
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="bg-orange-600 p-1.5 rounded-lg shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <span class="text-xl font-extrabold text-slate-800 tracking-tight">SprintFutures</span>
+            </div>
+            
+            <!-- Partner Link -->
+            <a href="https://www.frequencycycleworks.com/" target="_blank" class="group flex flex-col items-end text-right">
+                <span class="text-[0.6rem] text-slate-400 uppercase tracking-widest font-semibold group-hover:text-orange-500 transition-colors">Official Partner</span>
+                <span class="text-sm font-bold text-slate-700 group-hover:text-black">FREQUENCY <span class="text-sky-500">CYCLEWORKS</span></span>
+            </a>
         </div>
-    </a>
+    </nav>
 
-    <h1 style="color:#002366; margin-bottom:5px;">Sprint Futures</h1>
-    <p style="color:#666; margin-top:0; margin-bottom:30px;">Digital Race Management Suite</p>
-    
-    <div class="action-grid" id="mainMenu">
-        <div class="action-card card-demo" onclick="startDemo()">
-            <h3>🚀 Instant Demo</h3>
-            <p>Start a temporary test event instantly.</p>
-        </div>
-        <div class="action-card card-login" onclick="showLogin()">
-            <h3>🔑 Event Login</h3>
-            <p>Enter an Event ID to join a live race.</p>
-        </div>
-    </div>
-
-    <div id="hubLogin">
-        <div class="modal-content">
-            <button class="close-btn" onclick="document.getElementById('hubLogin').style.display='none'">&times;</button>
-            <h2 style="color:#002366; margin-top:0;">Join Event</h2>
-            <input type="text" id="hubEventId" placeholder="Event ID (e.g. derby24)" style="width:90%; padding:12px; margin-bottom:15px; border:2px solid #ddd; border-radius:6px; font-size:1.1em;">
-            <button onclick="manualLogin()" class="btn-primary">Enter Race Centre</button>
-        </div>
-    </div>
-
-    <div id="appLinks" class="hidden">
-        <div style="background:#e3f2fd; padding:10px; border-radius:8px; margin-bottom:20px; text-align:left; border:1px solid #90caf9;">
-            <strong>Active Event:</strong> <span id="currentEventDisplay" style="font-family:monospace; font-weight:bold; color:#002366;">...</span>
-        </div>
-
-        <a href="#" onclick="nav('sprint')" class="app-btn" style="border-color: #E30613;">
-            <div>🚴 Sprint Ladder</div><span>&rarr;</span>
-        </a>
-        <a href="#" onclick="nav('keirin')" class="app-btn" style="border-color: #002366;">
-            <div>🏁 Keirin Ladder</div><span>&rarr;</span>
-        </a>
-        <a href="#" onclick="nav('live')" class="app-btn" style="border-color: #28a745;">
-            <div>🔴 Spectator Live View</div><span>&rarr;</span>
-        </a>
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4">
         
-        <div class="app-btn" style="border-left: 8px solid #333; cursor:pointer;" onclick="document.getElementById('servicesModal').style.display='flex'">
-            <div>🛠️ Need a tool like this?</div><span style="font-size:1.5rem; color:#888;">+</span>
+        <div class="w-full max-w-md space-y-6">
+
+            <!-- Title Section -->
+            <div class="text-center space-y-2">
+                <h1 class="text-3xl font-black text-slate-900">Digital Race Suite</h1>
+                <p class="text-slate-500 text-lg">Professional Track Cycling Management</p>
+            </div>
+
+            <!-- VIEW 1: Main Menu (Hidden if Event ID is present) -->
+            <div id="mainMenu" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Demo Card -->
+                <button onclick="startDemo()" class="gradient-border bg-white p-6 shadow-sm hover:shadow-lg transition-all text-left group">
+                    <div class="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <span class="text-2xl">🚀</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800">Instant Demo</h3>
+                    <p class="text-sm text-slate-500 mt-1">Start a temporary test event instantly without login.</p>
+                </button>
+
+                <!-- Login Card -->
+                <button onclick="showLogin()" class="gradient-border bg-white p-6 shadow-sm hover:shadow-lg transition-all text-left group">
+                    <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <span class="text-2xl">🔑</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800">Event Login</h3>
+                    <p class="text-sm text-slate-500 mt-1">Enter an existing Event ID to join a live race.</p>
+                </button>
+            </div>
+
+            <!-- VIEW 2: App Links (Shown if Event ID is present) -->
+            <div id="appLinks" class="hidden space-y-3">
+                
+                <!-- Event Status Bar -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between text-blue-800 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wide opacity-70">Active Event</span>
+                    <span id="currentEventDisplay" class="font-mono font-bold">...</span>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <button onclick="nav('sprint')" class="w-full bg-white hover:bg-slate-50 border-l-8 border-red-600 p-4 rounded-r-lg shadow-sm flex items-center justify-between group transition-all">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🚴</span>
+                        <span class="font-bold text-slate-700 text-lg">Sprint Ladder</span>
+                    </div>
+                    <span class="text-slate-300 group-hover:text-red-600 transition-colors">➔</span>
+                </button>
+
+                <button onclick="nav('keirin')" class="w-full bg-white hover:bg-slate-50 border-l-8 border-indigo-900 p-4 rounded-r-lg shadow-sm flex items-center justify-between group transition-all">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🏁</span>
+                        <span class="font-bold text-slate-700 text-lg">Keirin Ladder</span>
+                    </div>
+                    <span class="text-slate-300 group-hover:text-indigo-900 transition-colors">➔</span>
+                </button>
+
+                <button onclick="nav('live')" class="w-full bg-white hover:bg-slate-50 border-l-8 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between group transition-all">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🔴</span>
+                        <span class="font-bold text-slate-700 text-lg">Spectator Live View</span>
+                    </div>
+                    <span class="text-slate-300 group-hover:text-green-500 transition-colors">➔</span>
+                </button>
+
+                <!-- Developer Tool Link -->
+                <button onclick="document.getElementById('servicesModal').classList.remove('hidden')" class="w-full mt-6 border border-dashed border-slate-300 text-slate-400 p-3 rounded-lg hover:bg-slate-50 hover:text-slate-600 transition text-sm flex items-center justify-center space-x-2">
+                    <span>🛠️ Need a tool like this?</span>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="container mx-auto text-center space-y-4">
+            <a href="https://www.buymeacoffee.com/MichaelHanreck" target="_blank" class="inline-flex items-center space-x-2 bg-[#FFDD00] hover:bg-[#FFEA00] text-black font-bold py-2 px-6 rounded-full shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-[#F0D000]">
+                <span class="text-lg">🍺</span>
+                <span>Buy me a beer (MichaelHanreck)</span>
+            </a>
+            <p class="text-xs text-slate-400">Powered by Google Firebase • v2.1</p>
+        </div>
+    </footer>
+
+    <!-- MODAL: Event Login -->
+    <div id="hubLogin" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative animate-[fade-in_0.2s_ease-out]">
+            <button onclick="document.getElementById('hubLogin').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-xl font-bold text-slate-800 mb-4">Enter Race Centre</h2>
+            <input type="text" id="hubEventId" placeholder="Event ID (e.g. derby24)" class="w-full p-3 border-2 border-slate-200 rounded-lg text-lg focus:border-blue-500 focus:outline-none mb-4 transition-colors">
+            <button onclick="manualLogin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg transition-colors">
+                Join Event
+            </button>
         </div>
     </div>
 
-    <div id="servicesModal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="document.getElementById('servicesModal').style.display='none'">&times;</button>
-            <h2 style="margin-top:0; font-size:1.4em;">Like how this works?</h2>
-            <p style="color:#666; font-size:0.95em; line-height:1.5;">I am a developer available for hire. I built this Race Suite to solve a specific problem, and I can do the same for you.</p>
-            <div style="background:#f9f9f9; padding:15px; border-radius:8px; text-align:left; margin:20px 0;">
-                <strong style="color:#333;">I build custom tools for:</strong>
-                <ul style="margin:5px 0 0 20px; color:#555; font-size:0.9em;">
-                    <li>🏆 Tournament Logistics</li>
-                    <li>📅 Staff Rotas & Scheduling</li>
-                    <li>🚀 Bespoke Web Apps</li>
+    <!-- MODAL: Services -->
+    <div id="servicesModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
+            <button onclick="document.getElementById('servicesModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Like how this works?</h2>
+            <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                I am a developer available for hire. I built this Race Suite to solve a specific problem, and I can do the same for you.
+            </p>
+            <div class="bg-slate-50 p-4 rounded-lg mb-6 text-left">
+                <strong class="text-slate-800 text-sm block mb-2">I build custom tools for:</strong>
+                <ul class="list-disc list-inside text-slate-600 text-sm space-y-1">
+                    <li>Tournament Logistics</li>
+                    <li>Staff Rotas & Scheduling</li>
+                    <li>Bespoke Web Apps</li>
                 </ul>
             </div>
-            <a href="mailto:your-email@example.com" class="btn-primary">Contact Me for a Quote</a>
+            <a href="mailto:your-email@example.com" class="block text-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors">
+                Contact Me for a Quote
+            </a>
         </div>
     </div>
 
-    <script>
-        // --- 1. FIREBASE CONFIGURATION (YOUR KEYS) ---
+    <!-- MAIN LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        // 1. CONFIGURATION
         const firebaseConfig = {
-    apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-  authDomain: "sprintfutures.firebaseapp.com",
-  projectId: "sprintfutures",
-  storageBucket: "sprintfutures.firebasestorage.app",
-  messagingSenderId: "535060943616",
-  appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-  measurementId: "G-9XFQV3PLEV"
-};
+            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+            authDomain: "sprintfutures.firebaseapp.com",
+            projectId: "sprintfutures",
+            storageBucket: "sprintfutures.firebasestorage.app",
+            messagingSenderId: "535060943616",
+            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+            measurementId: "G-9XFQV3PLEV"
+        };
 
-        // ✅ REPLACE WITH THIS NEW CODE
-const app = initializeApp(firebaseConfig);
-
-        // --- 2. PWA INSTALLER ---
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then(() => console.log("Service Worker Registered"));
+        // 2. INITIALIZE FIREBASE
+        try {
+            const app = initializeApp(firebaseConfig);
+            // We just init it to make sure it's ready for other pages
+            console.log("Firebase initialized successfully");
+        } catch (e) {
+            console.error("Firebase init failed:", e);
         }
 
-        // --- 3. ROUTING LOGIC ---
+        // 3. PWA INSTALLER
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then(() => console.log("Service Worker Registered")).catch(err => console.log("SW Fail", err));
+        }
+
+        // 4. ROUTING & LOGIC
         const params = new URLSearchParams(window.location.search);
         const urlEvent = params.get('event');
         const urlAuth = params.get('auth');
 
-        // If URL has event ID, show the App Menu
-        if(urlEvent) {
+        // Logic: If URL has event ID, swap Main Menu for App Links
+        if (urlEvent) {
             document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('hubLogin').style.display = 'none';
+            document.getElementById('hubLogin').classList.add('hidden');
             document.getElementById('appLinks').classList.remove('hidden');
             
             let label = urlEvent;
@@ -158,31 +226,28 @@ const app = initializeApp(firebaseConfig);
             document.getElementById('currentEventDisplay').innerText = label;
         }
 
-        // Start Instant Demo
-        function startDemo() {
+        // 5. EXPOSE FUNCTIONS TO WINDOW (So HTML onclick="" works)
+        
+        window.startDemo = function() {
             const randomID = 'demo-' + Math.floor(1000 + Math.random() * 9000);
             window.location.href = `index.html?event=${randomID}&auth=admin`;
-        }
+        };
 
-        // Show Login Modal
-        function showLogin() {
-            document.getElementById('hubLogin').style.display = 'flex';
+        window.showLogin = function() {
+            document.getElementById('hubLogin').classList.remove('hidden');
             document.getElementById('hubEventId').focus();
-        }
+        };
 
-        // Process Manual Login
-        function manualLogin() {
+        window.manualLogin = function() {
             const id = document.getElementById('hubEventId').value.trim().toLowerCase();
             if(id) window.location.href = `index.html?event=${id}`;
-        }
+        };
 
-        // Navigation Helper
-        function nav(page) {
+        window.nav = function(page) {
             let link = `${page}.html?event=${urlEvent}`;
             if(urlAuth === 'admin') link += `&auth=admin`;
             window.location.href = link;
-        }
+        };
     </script>
-
 </body>
 </html>
