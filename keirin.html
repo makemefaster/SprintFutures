@@ -8,6 +8,7 @@
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     
     <!-- Tailwind CSS -->
@@ -60,6 +61,7 @@
                 <input id="loginPin" type="password" placeholder="Admin PIN (Optional)" class="w-full p-3 rounded bg-white text-slate-900">
                 <button onclick="doLogin()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded font-bold transition">ENTER RACE CENTRE</button>
                 <p id="initStatus" class="text-xs text-slate-400 text-center mt-2">Ready</p>
+                <p class="text-[0.6rem] text-slate-500 text-center mt-4">Admin Shortcut: Ctrl + Shift + A</p>
             </div>
         </div>
 
@@ -114,6 +116,11 @@
             <p class="admin-only text-xs text-center bg-blue-50 text-blue-700 p-2 rounded border border-blue-100">
                 <strong>Admin Mode:</strong> Click riders in finishing order (1st to Last) to rank them.
             </p>
+            
+            <!-- Admin Modify Button -->
+            <div class="admin-only">
+                <button onclick="forcePhase('phase-qualifying')" class="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded border border-slate-300 hover:bg-slate-200">✏️ Modify Entry / Add Riders</button>
+            </div>
 
             <!-- Heats Grid -->
             <div id="heatsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -165,6 +172,7 @@
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         // 1. EXPOSE FUNCTIONS
+        window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } };
         window.importNames = importNames;
         window.updateRider = updateRider;
@@ -172,13 +180,13 @@
         window.res = res;
         window.finishRound = finishRound;
         window.endEventEarly = () => { if(confirm("End event now?")) save(true, true); };
-        window.doLogin = doLogin;
+        window.forcePhase = forcePhase;
 
         // 2. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
             authDomain: "sprintfutures.firebaseapp.com",
-            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com", // Added for Realtime DB
+            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com", 
             projectId: "sprintfutures",
             storageBucket: "sprintfutures.firebasestorage.app",
             messagingSenderId: "535060943616",
@@ -213,7 +221,7 @@
         let eventID = "";
         let isAdmin = false;
         const PIN = "1234"; 
-        const TOTAL_ROUNDS = 2; // Heat -> Final
+        const TOTAL_ROUNDS = 2; // Keirin: Heat -> Final
 
         // 6. INIT LOGIC
         const p = new URLSearchParams(window.location.search);
@@ -235,12 +243,21 @@
             }
         }
 
+        // 7. KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+                e.preventDefault(); 
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                if (eventID) document.getElementById('loginId').value = eventID;
+                document.getElementById('loginPin').focus();
+            }
+        });
+
         function doLogin() {
             const id = document.getElementById('loginId').value.trim().toLowerCase();
             const pin = document.getElementById('loginPin').value.trim();
             if(!id) return alert("Enter Event ID");
             
-            // Fix: Use URL object to construct safe URL
             const url = new URL(window.location.href);
             url.searchParams.set('event', id);
             
@@ -258,7 +275,14 @@
                 const data = snap.val();
                 if(data) {
                     riders = data.riders || [];
-                    heats = data.heats || [];
+                    
+                    // --- SANITIZER FIX (PREVENTS CRASHES) ---
+                    heats = (data.heats || []).map(h => ({
+                        ...h,
+                        riders: h.riders || [],
+                        res: h.res || []
+                    }));
+                    
                     roundCounter = data.roundCounter || 1;
                     updateCats();
                     
@@ -279,12 +303,11 @@
                     showPhase('phase-qualifying');
                 }
             }, (error) => {
-                // Specific Error Handling
                 console.error("Database Error:", error);
                 if (error.code === 'PERMISSION_DENIED') {
                     alert("Access Denied: Check Security Rules in Firebase Console.");
                 } else {
-                    alert("Database Error: " + error.message + "\n\nDid you create the Realtime Database in the console?");
+                    alert("Database Error: " + error.message);
                 }
             });
         }
@@ -342,7 +365,6 @@
         function updateCats() {
             cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
             const s = document.getElementById('categoryFilter');
-            // Rebuild options if size changed
             if(s.options.length === 0 || s.options.length-1 !== cats.size) {
                 s.innerHTML='<option value="ALL">All Categories</option>';
                 Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`);
@@ -358,7 +380,6 @@
         function renderTable() {
             const tb=document.getElementById('riderTable'); tb.innerHTML='';
             riders.forEach((r,i) => {
-                // Admin Inputs
                 if (isAdmin) {
                     tb.innerHTML += `
                         <tr class="hover:bg-slate-50 transition">
@@ -415,7 +436,8 @@
                         <div class="divide-y divide-slate-100">`;
                 
                 h.riders.forEach(r => {
-                    let idx = h.res.indexOf(r.id);
+                    // Safe Check
+                    let idx = (h.res || []).indexOf(r.id);
                     let cls='hover:bg-slate-50 cursor-pointer transition';
                     let status='';
                     
@@ -450,12 +472,16 @@
         function res(hi,rid) { 
             if(!isAdmin) return; 
             let h=heats[hi]; 
+            // Safeguard
+            if(!h.res) h.res = [];
+            
             h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); 
             save(); 
         }
 
         function finishRound() {
-            for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats first.");
+            // Safeguard
+            for(let h of heats) if((h.res || []).length!=h.riders.length) return alert("Please finish all heats first.");
             
             if(roundCounter >= TOTAL_ROUNDS) { save(true); return; }
             
@@ -482,12 +508,12 @@
             // Just a basic sort for now - Finals logic puts winner of Heat A at top
             let allResults = [];
             heats.forEach((h, heatIdx) => {
-                 h.res.forEach((rid, placeIdx) => {
+                 (h.res || []).forEach((rid, placeIdx) => {
                      let r = riders.find(x=>x.id==rid);
                      allResults.push({ ...r, heatIdx, placeIdx });
                  });
                  // Add DNFs
-                 h.riders.filter(r => !h.res.includes(r.id)).forEach(r => {
+                 h.riders.filter(r => !(h.res || []).includes(r.id)).forEach(r => {
                      allResults.push({ ...r, heatIdx, placeIdx: 99 });
                  });
             });
