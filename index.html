@@ -3,122 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Track Cycling Suite</title>
+    <title>Sprint Futures Suite</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
     <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
-        .sponsor-bar { margin-bottom: 20px; padding: 15px; background: white; border-bottom: 4px solid #E30613; }
-        h1 { color: #002366; margin-bottom: 5px; }
+        body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; padding-bottom: 80px; }
         
-        /* Action Grid */
+        /* 1. SPONSOR BANNER */
+        .sponsor-bar {
+            background: white; padding: 15px; border-radius: 8px; margin-bottom: 30px;
+            border-bottom: 4px solid #00d2ff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* 2. MENU GRID */
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
-        .action-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: left; cursor: pointer; border-top: 5px solid #ccc; transition: transform 0.1s; }
+        
+        .action-card {
+            background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: left; cursor: pointer; border-top: 5px solid #ccc; transition: transform 0.1s;
+        }
         .action-card:active { transform: scale(0.98); }
+        .action-card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #002366; }
+        .action-card p { margin: 0; font-size: 0.85em; color: #666; }
+
         .card-demo { border-top-color: #28a745; }
         .card-login { border-top-color: #002366; }
-        
-        /* App Links */
+
+        /* 3. APP LIST (Hidden until login) */
         .hidden { display: none; }
-        .app-btn { display: flex; justify-content: space-between; align-items: center; text-decoration: none; padding: 20px; border-radius: 12px; margin-bottom: 15px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 8px solid #333; color: #333; font-weight: bold; font-size: 1.2rem; }
         
-        /* Modal */
-        #servicesModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; }
-        .modal-content { background:white; width:85%; max-width:450px; margin: 80px auto; padding:30px; border-radius:12px; position:relative; }
-        .btn-primary { display:block; text-decoration:none; text-align:center; padding:15px; border-radius:6px; background: #333; color:white; font-weight:bold; }
+        .app-btn {
+            display: flex; justify-content: space-between; align-items: center;
+            text-decoration: none; padding: 20px; border-radius: 12px; margin-bottom: 15px;
+            background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 8px solid #333;
+            color: #333; font-weight: bold; font-size: 1.2rem;
+        }
+
+        /* 4. MODALS */
+        #hubLogin, #servicesModal { 
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+            background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;
+        }
+        .modal-content { 
+            background:white; width:85%; max-width:400px; padding:30px; 
+            border-radius:12px; position:relative; text-align: center;
+        }
+        .close-btn { position:absolute; top:10px; right:15px; border:none; background:none; font-size:2em; cursor:pointer; color:#999; }
+        
+        .btn-primary { 
+            display:block; width:100%; text-decoration:none; text-align:center; padding:12px 0; 
+            border-radius:6px; background: #002366; color:white; font-weight:bold; border:none; cursor:pointer; margin-top:10px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="sponsor-bar">
-        <div style="font-size:0.7em; color:#888; text-transform:uppercase;">Official Partner</div>
-        <div style="font-weight:bold; font-size:1.2em;">FREQUENCY CYCLEWORKS</div>
-    </div>
+    <a href="https://www.frequencycycleworks.com/" target="_blank" style="text-decoration: none; color: inherit;">
+        <div class="sponsor-bar">
+            <div style="font-size:0.7em; color:#888; text-transform:uppercase; letter-spacing: 1px;">Official Partner</div>
+            <div style="font-weight:bold; font-size:1.3em;">FREQUENCY <span style="color:#00d2ff">CYCLEWORKS</span></div>
+        </div>
+    </a>
 
-    <h1>Track Cycling Suite</h1>
-    <p style="color:#666; margin-bottom:30px;">Race Management & Live Timing</p>
+    <h1 style="color:#002366; margin-bottom:5px;">Sprint Futures</h1>
+    <p style="color:#666; margin-top:0; margin-bottom:30px;">Digital Race Management Suite</p>
     
     <div class="action-grid" id="mainMenu">
         <div class="action-card card-demo" onclick="startDemo()">
             <h3>🚀 Instant Demo</h3>
-            <p style="font-size:0.85em; color:#666;">Create a temp event. No password needed.</p>
+            <p>Start a temporary test event instantly.</p>
         </div>
         <div class="action-card card-login" onclick="showLogin()">
             <h3>🔑 Event Login</h3>
-            <p style="font-size:0.85em; color:#666;">Enter an Event ID for a specific race.</p>
+            <p>Enter an Event ID to join a live race.</p>
         </div>
     </div>
 
-    <div id="hubLogin" class="hidden" style="margin-bottom:20px; background:white; padding:20px; border-radius:8px;">
-        <h3>Join Existing Event</h3>
-        <input type="text" id="hubEventId" placeholder="Event ID (e.g. derby24)" style="padding:10px; width:70%; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;">
-        <button onclick="manualLogin()" style="padding:10px 20px; background:#002366; color:white; border:none; border-radius:4px; font-weight:bold;">Go</button>
+    <div id="hubLogin">
+        <div class="modal-content">
+            <button class="close-btn" onclick="document.getElementById('hubLogin').style.display='none'">&times;</button>
+            <h2 style="color:#002366; margin-top:0;">Join Event</h2>
+            <input type="text" id="hubEventId" placeholder="Event ID (e.g. derby24)" style="width:90%; padding:12px; margin-bottom:15px; border:2px solid #ddd; border-radius:6px; font-size:1.1em;">
+            <button onclick="manualLogin()" class="btn-primary">Enter Race Centre</button>
+        </div>
     </div>
 
     <div id="appLinks" class="hidden">
-        <div style="background:#e3f2fd; padding:10px; border-radius:8px; margin-bottom:20px; text-align:left;">
-            <strong>Current Event:</strong> <span id="currentEventDisplay" style="font-family:monospace; font-weight:bold;">...</span>
+        <div style="background:#e3f2fd; padding:10px; border-radius:8px; margin-bottom:20px; text-align:left; border:1px solid #90caf9;">
+            <strong>Active Event:</strong> <span id="currentEventDisplay" style="font-family:monospace; font-weight:bold; color:#002366;">...</span>
         </div>
 
-        <a href="#" onclick="nav('sprint')" class="app-btn" style="border-color: #E30613;"><div>🚴 Sprint Ladder</div><span>&rarr;</span></a>
-        <a href="#" onclick="nav('keirin')" class="app-btn" style="border-color: #002366;"><div>🏁 Keirin Ladder</div><span>&rarr;</span></a>
-        <a href="#" onclick="nav('live')" class="app-btn" style="border-color: #28a745;"><div>🔴 Live Spectator View</div><span>&rarr;</span></a>
+        <a href="#" onclick="nav('sprint')" class="app-btn" style="border-color: #E30613;">
+            <div>🚴 Sprint Ladder</div><span>&rarr;</span>
+        </a>
+        <a href="#" onclick="nav('keirin')" class="app-btn" style="border-color: #002366;">
+            <div>🏁 Keirin Ladder</div><span>&rarr;</span>
+        </a>
+        <a href="#" onclick="nav('live')" class="app-btn" style="border-color: #28a745;">
+            <div>🔴 Spectator Live View</div><span>&rarr;</span>
+        </a>
         
-        <div class="app-btn" style="border-left: 8px solid #333; cursor:pointer;" onclick="document.getElementById('servicesModal').style.display='block'">
+        <div class="app-btn" style="border-left: 8px solid #333; cursor:pointer;" onclick="document.getElementById('servicesModal').style.display='flex'">
             <div>🛠️ Need a tool like this?</div><span style="font-size:1.5rem; color:#888;">+</span>
         </div>
     </div>
 
     <div id="servicesModal">
         <div class="modal-content">
-            <button onclick="document.getElementById('servicesModal').style.display='none'" style="position:absolute; top:10px; right:15px; border:none; background:none; font-size:2em;">&times;</button>
-            <h2 style="margin-top:0;">Like how this works?</h2>
-            <p>I am a software developer available for hire. I built this Race Suite to solve a specific problem, and I can do the same for you.</p>
-            <ul style="text-align:left; color:#555; margin:20px 0;">
-                <li>🏆 Tournament Organization</li>
-                <li>📅 Staff Rotas & Scheduling</li>
-                <li>🚀 Bespoke Web Apps</li>
-            </ul>
+            <button class="close-btn" onclick="document.getElementById('servicesModal').style.display='none'">&times;</button>
+            <h2 style="margin-top:0; font-size:1.4em;">Like how this works?</h2>
+            <p style="color:#666; font-size:0.95em; line-height:1.5;">I am a developer available for hire. I built this Race Suite to solve a specific problem, and I can do the same for you.</p>
+            <div style="background:#f9f9f9; padding:15px; border-radius:8px; text-align:left; margin:20px 0;">
+                <strong style="color:#333;">I build custom tools for:</strong>
+                <ul style="margin:5px 0 0 20px; color:#555; font-size:0.9em;">
+                    <li>🏆 Tournament Logistics</li>
+                    <li>📅 Staff Rotas & Scheduling</li>
+                    <li>🚀 Bespoke Web Apps</li>
+                </ul>
+            </div>
             <a href="mailto:your-email@example.com" class="btn-primary">Contact Me for a Quote</a>
         </div>
     </div>
 
     <script>
-        // PWA Installer
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+        // --- 1. FIREBASE CONFIGURATION (YOUR KEYS) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+            authDomain: "sprintfutures.firebaseapp.com",
+            projectId: "sprintfutures",
+            storageBucket: "sprintfutures.firebasestorage.app",
+            messagingSenderId: "535060943616",
+            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+            measurementId: "G-9XFQV3PLEV"
+        };
 
+        // Initialize Firebase (Compat Mode)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // --- 2. PWA INSTALLER ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then(() => console.log("Service Worker Registered"));
+        }
+
+        // --- 3. ROUTING LOGIC ---
         const params = new URLSearchParams(window.location.search);
         const urlEvent = params.get('event');
         const urlAuth = params.get('auth');
 
-        // Check if logged in via URL
+        // If URL has event ID, show the App Menu
         if(urlEvent) {
             document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('hubLogin').style.display = 'none';
             document.getElementById('appLinks').classList.remove('hidden');
-            document.getElementById('currentEventDisplay').innerText = urlEvent + (urlAuth==='admin' ? ' (Admin)' : ' (View Only)');
+            
+            let label = urlEvent;
+            if(urlAuth === 'admin') label += ' (Admin Mode)';
+            else label += ' (Spectator Mode)';
+            
+            document.getElementById('currentEventDisplay').innerText = label;
         }
 
+        // Start Instant Demo
         function startDemo() {
-            const id = 'demo-' + Math.floor(1000 + Math.random() * 9000);
-            window.location.href = `index.html?event=${id}&auth=admin`;
+            const randomID = 'demo-' + Math.floor(1000 + Math.random() * 9000);
+            window.location.href = `index.html?event=${randomID}&auth=admin`;
         }
 
+        // Show Login Modal
         function showLogin() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('hubLogin').classList.remove('hidden');
+            document.getElementById('hubLogin').style.display = 'flex';
+            document.getElementById('hubEventId').focus();
         }
 
+        // Process Manual Login
         function manualLogin() {
-            const id = document.getElementById('hubEventId').value.trim();
+            const id = document.getElementById('hubEventId').value.trim().toLowerCase();
             if(id) window.location.href = `index.html?event=${id}`;
         }
 
+        // Navigation Helper
         function nav(page) {
             let link = `${page}.html?event=${urlEvent}`;
             if(urlAuth === 'admin') link += `&auth=admin`;
             window.location.href = link;
         }
     </script>
+
 </body>
 </html>
