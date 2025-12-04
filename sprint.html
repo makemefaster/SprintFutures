@@ -8,6 +8,7 @@
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     
     <!-- Tailwind CSS -->
@@ -242,7 +243,7 @@
         document.addEventListener('keydown', (e) => {
             // Ctrl + Shift + A to show Admin Login
             if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-                e.preventDefault(); // Prevent default browser actions
+                e.preventDefault(); 
                 document.getElementById('loginOverlay').classList.remove('hidden');
                 if (eventID) document.getElementById('loginId').value = eventID;
                 document.getElementById('loginPin').focus();
@@ -254,7 +255,6 @@
             const pin = document.getElementById('loginPin').value.trim();
             if(!id) return alert("Enter Event ID");
             
-            // Fix: Use URL object to construct safe URL
             const url = new URL(window.location.href);
             url.searchParams.set('event', id);
             
@@ -272,7 +272,15 @@
                 const data = snap.val();
                 if(data) {
                     riders = data.riders || [];
-                    heats = data.heats || [];
+                    
+                    // --- FIX FOR TYPE ERROR: Sanitize incoming data ---
+                    // Ensure that every heat has a 'riders' array and a 'res' array
+                    heats = (data.heats || []).map(h => ({
+                        ...h,
+                        riders: h.riders || [],
+                        res: h.res || [] // Defaults undefined results to empty array []
+                    }));
+                    
                     roundCounter = data.roundCounter || 1;
                     updateCats();
                     
@@ -293,12 +301,11 @@
                     showPhase('phase-qualifying');
                 }
             }, (error) => {
-                // Specific Error Handling for User
                 console.error("Database Error:", error);
                 if (error.code === 'PERMISSION_DENIED') {
                     alert("Access Denied: Check Security Rules in Firebase Console.");
                 } else {
-                    alert("Database Error: " + error.message + "\n\nDid you create the Realtime Database in the console?");
+                    alert("Database Error: " + error.message);
                 }
             });
         }
@@ -402,7 +409,6 @@
             pool.sort((a,b)=>a.time-b.time);
             
             heats=[]; 
-            // Optional: Preset Heat A logic if desired, keeping standard loop for now
             let c=65; // 'A'
             while(pool.length) {
                 let s=3; 
@@ -431,13 +437,13 @@
                         <div class="divide-y divide-slate-100">`;
                 
                 h.riders.forEach(r => {
-                    let idx = h.res.indexOf(r.id);
+                    // Safe check because of Sanitizer in startSync
+                    let idx = h.res.indexOf(r.id); 
                     let cls='hover:bg-slate-50 cursor-pointer transition';
                     let status='';
                     
                     if(idx !== -1) {
                         if(roundCounter < TOTAL_ROUNDS) {
-                             // Sprint Logic: Winner Up, Loser Down
                              if(idx === 0) { cls='pos-top'; status='<span class="text-green-800 font-bold text-xs">⬆️ UP</span>'; }
                              else if(idx === h.riders.length-1 && idx>0) { cls='pos-bot'; status='<span class="text-red-800 font-bold text-xs">⬇️ DOWN</span>'; }
                              else { cls='pos-mid'; status='<span class="text-yellow-800 font-bold text-xs">↔️ STAY</span>'; }
@@ -467,24 +473,27 @@
         function res(hi,rid) { 
             if(!isAdmin) return; 
             let h=heats[hi]; 
+            // Safeguard against missing res array
+            if(!h.res) h.res = [];
+            
             h.res.includes(rid)?h.res=h.res.filter(x=>x!=rid):h.res.push(rid); 
             save(); 
         }
 
         function finishRound() {
-            for(let h of heats) if(h.res.length!=h.riders.length) return alert("Please finish all heats first.");
+            // Safeguard against missing res array
+            for(let h of heats) if((h.res || []).length!=h.riders.length) return alert("Please finish all heats first.");
+            
             if(roundCounter >= TOTAL_ROUNDS) { save(true); return; }
             
             let next=heats.map(()=>[]);
             heats.forEach((h,i)=>{
-                let w=h.res[0]; // Winner
-                let l=h.res[h.res.length-1]; // Loser
+                let w=h.res[0]; 
+                let l=h.res[h.res.length-1]; 
                 
-                // Logic: Winner Up, Loser Down
                 i===0 ? next[0].push(riders.find(x=>x.id==w)) : next[i-1].push(riders.find(x=>x.id==w));
                 i===heats.length-1 ? next[i].push(riders.find(x=>x.id==l)) : next[i+1].push(riders.find(x=>x.id==l));
                 
-                // Middle riders stay
                 for(let k=1; k<h.res.length-1; k++) next[i].push(riders.find(x=>x.id==h.res[k]));
             });
             
@@ -498,11 +507,12 @@
             
             let allResults = [];
             heats.forEach((h, heatIdx) => {
-                 h.res.forEach((rid, placeIdx) => {
+                 (h.res || []).forEach((rid, placeIdx) => {
                      let r = riders.find(x=>x.id==rid);
                      allResults.push({ ...r, heatIdx, placeIdx });
                  });
-                 h.riders.filter(r => !h.res.includes(r.id)).forEach(r => {
+                 // Add DNFs
+                 h.riders.filter(r => !(h.res || []).includes(r.id)).forEach(r => {
                      allResults.push({ ...r, heatIdx, placeIdx: 99 });
                  });
             });
