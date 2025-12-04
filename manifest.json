@@ -1,14 +1,20 @@
 {
-  "name": "Race Director Suite",
-  "short_name": "RaceSuite",
+  "name": "Sprint Futures Race Suite",
+  "short_name": "SprintFutures",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f0f2f5",
+  "background_color": "#f8fafc",
   "theme_color": "#002366",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063207.png",
+      "src": "icon.png",
       "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
