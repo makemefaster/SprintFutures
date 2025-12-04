@@ -8,33 +8,48 @@
 <body>
     <h1>Testing Firebase...</h1>
     
-    <script type="module">
-        // 1. Paste your Firebase Configuration here (from Project Settings)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    
 
-        const firebaseConfig = {
-            // ... your config keys go here ...
-        };
+<script type="module">
+    // 1. IMPORT the tools (This fixes "initializeApp is not defined")
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // 2. CONFIGURE the connection (This fixes "projectId not provided")
+    // Go to Firebase Console -> Project Settings -> General -> "Your Apps" -> copy the config
+    const firebaseConfig = {
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+  authDomain: "sprintfutures.firebaseapp.com",
+  projectId: "sprintfutures",
+  storageBucket: "sprintfutures.firebasestorage.app",
+  messagingSenderId: "535060943616",
+  appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+  measurementId: "G-9XFQV3PLEV"
+    };
 
-        // 2. Paste the "Test Connection" function here
-        async function testConnection() {
-            try {
-                const docRef = await addDoc(collection(db, "testCollection"), {
-                    message: "Hello Firebase!",
-                    timestamp: new Date()
-                });
-                console.log("✅ SUCCESS: Connection works! Document written with ID: ", docRef.id);
-            } catch (e) {
-                console.error("❌ ERROR: Could not connect to Firebase.", e);
-            }
+    // 3. START the app
+    console.log("Attempting to initialize app...");
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 4. TEST the connection
+    async function testConnection() {
+        try {
+            console.log("Attempting to write to database...");
+            const docRef = await addDoc(collection(db, "testCollection"), {
+                message: "Hello Firebase!",
+                timestamp: new Date()
+            });
+            console.log("✅ SUCCESS: Connection works! Document written with ID: ", docRef.id);
+        } catch (e) {
+            console.error("❌ ERROR: Could not connect to Firebase.", e);
         }
+    }
 
-        testConnection();
-    </script>
+    testConnection();
+</script>
 </body>
 </html>
 
