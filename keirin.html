@@ -32,7 +32,6 @@
 
     <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6">
         
-        <!-- PHASE 1: SETUP -->
         <div id="phase-qualifying" class="bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
             <div class="p-4 border-b border-slate-100 bg-slate-50">
                 <h3 class="font-bold text-slate-700">1. Setup Heats</h3>
@@ -57,7 +56,6 @@
             </div>
         </div>
 
-        <!-- PHASE 2: RACING -->
         <div id="phase-racing" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center sticky top-16 z-40">
                 <h3 class="font-bold text-slate-800">Race Card</h3>
@@ -73,7 +71,6 @@
             </div>
         </div>
 
-        <!-- PHASE 3: STANDINGS -->
         <div id="phase-standings" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-6 bg-slate-800 text-white text-center">
                 <h3 class="text-2xl font-black">🏁 Final Results</h3>
@@ -110,14 +107,9 @@
         const db = getDatabase(app);
 
         // STATE
-        let riders = [];
-        let heats = [];
-        let history = [];
-        let roundCounter = 1;
-        let cats = new Set();
-        let eventID = "";
-        let isAdmin = false;
-        const TOTAL_ROUNDS = 2; // Heat -> Final
+        let riders = [], heats = [], history = [], roundCounter = 1, cats = new Set();
+        let eventID = "", isAdmin = false;
+        const TOTAL_ROUNDS = 2;
 
         // INIT
         const p = new URLSearchParams(window.location.search);
@@ -130,27 +122,26 @@
 
         // SYNC
         if (eventID) {
-            // 1. Listen to SHARED riders
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 updateCats();
                 if(!window.manualPhase && heats.length === 0 && !history.length) renderTable();
             });
 
-            // 2. Listen to KEIRIN data
             onValue(ref(db, `events/${eventID}/keirin`), (snap) => {
                 const data = snap.val();
                 if (data) {
                     heats = (data.heats || []).map(h => ({ ...h, riders: h.riders || [], res: h.res || [] }));
-                    history = data.history || [];
+                    history = (data.history || []).map(r => ({ ...r, heats: (r.heats||[]).map(h=>({ ...h, riders: h.riders||[], res: h.res||[] })) }));
                     roundCounter = data.roundCounter || 1;
-
-                    if (!window.manualPhase) {
-                        if (data.isFinished) { showPhase('phase-standings'); renderResults(); }
-                        else if (heats.length > 0) { showPhase('phase-racing'); renderHeats(); }
+                    updateCats();
+                    
+                    if(!window.manualPhase) {
+                        if(data.isFinished) { showPhase('phase-standings'); renderResults(data.earlyEnd); }
+                        else if(heats.length > 0) { showPhase('phase-racing'); renderHeats(); }
                         else { showPhase('phase-qualifying'); renderTable(); }
                     }
-                }
+                } else { renderTable(); showPhase('phase-qualifying'); }
             });
         }
 
@@ -198,20 +189,40 @@
         }
 
         function generateHeats() {
-            const cat = document.getElementById('categoryFilter').value;
-            let pool = (cat === 'ALL') ? [...riders] : riders.filter(r => r.cat === cat);
+            const selectedCat = document.getElementById('categoryFilter').value;
             
-            if (pool.length < 4) return alert("Need 4+ riders for Keirin.");
-            pool.sort((a, b) => a.time - b.time);
+            // 1. Determine categories
+            let categoriesToRun = [];
+            if(selectedCat === 'ALL') {
+                categoriesToRun = [...new Set(riders.map(r => r.cat))].sort();
+            } else {
+                categoriesToRun = [selectedCat];
+            }
 
             heats = [];
-            let heatChar = 65;
-            while (pool.length > 0) {
-                let s = 6; // Keirin default
-                let hr = [];
-                for (let i = 0; i < s; i++) if (pool.length) hr.push(pool.shift());
-                heats.push({ name: "Heat " + String.fromCharCode(heatChar++), riders: hr, res: [] });
-            }
+            let heatChar = 65; // 'A'
+
+            // 2. Loop through categories (ISOLATION)
+            categoriesToRun.forEach(cat => {
+                let pool = riders.filter(r => r.cat === cat);
+                if(pool.length < 4) return; // Keirin minimum
+                pool.sort((a,b) => a.time - b.time);
+
+                while(pool.length > 0) {
+                    let s = 6; 
+                    let hr = [];
+                    for(let i=0; i<s; i++) if(pool.length) hr.push(pool.shift());
+                    heats.push({
+                        name: `Heat ${String.fromCharCode(heatChar++)}`,
+                        catName: cat,
+                        riders: hr, 
+                        res: []
+                    });
+                }
+            });
+
+            if(heats.length === 0) return alert("Not enough riders.");
+            
             roundCounter = 1; history = []; window.manualPhase = false; save();
         }
 
@@ -220,9 +231,11 @@
             document.getElementById('roundBadge').innerText = "Round " + roundCounter;
             
             heats.forEach((h, i) => {
+                let catLabel = h.catName ? `<span class="bg-black/30 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2">${h.catName}</span>` : '';
+                
                 let html = `<div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                         <div class="bg-slate-800 text-white p-3 flex justify-between items-center">
-                            <span class="font-bold">${h.name}</span> 
+                            <div class="flex items-center"><span class="font-bold">${h.name}</span> ${catLabel}</div>
                             <span class="text-xs bg-slate-700 px-2 py-1 rounded">${h.riders.length} Riders</span>
                         </div>
                         <div class="divide-y divide-slate-100">`;
@@ -277,12 +290,12 @@
                 });
             });
 
-            heats = next.map((rs, i) => ({ name: heats[i].name, riders: rs, res: [] }));
+            heats = next.map((rs, i) => ({ name: heats[i].name, catName: heats[i].catName, riders: rs, res: [] }));
             roundCounter++;
             save();
         }
 
-        function renderResults() {
+        function renderResults(earlyEnd) {
             const tb = document.getElementById('resultsBody'); tb.innerHTML = '';
             let allResults = [];
             heats.forEach((h, heatIdx) => {
