@@ -11,7 +11,6 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen p-4 flex flex-col">
 
-    <!-- Header -->
     <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
         <div class="flex items-center space-x-3">
             <a href="index.html" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-slate-300">🏠</a>
@@ -26,7 +25,6 @@
         </div>
     </div>
 
-    <!-- Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow">
         
         <!-- SPRINT COLUMN -->
@@ -35,7 +33,7 @@
                 <h2 class="font-bold text-lg">🚴 Sprint Ladder</h2>
                 <span id="sprintRound" class="text-xs bg-black/30 px-2 py-1 rounded">Round -</span>
             </div>
-            <div id="sprintContainer" class="p-4 space-y-3 overflow-y-auto flex-grow">
+            <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow">
                 <div class="text-center text-slate-500 py-10 animate-pulse">Waiting for data...</div>
             </div>
         </div>
@@ -46,7 +44,7 @@
                 <h2 class="font-bold text-lg">🏁 Keirin Ladder</h2>
                 <span id="keirinRound" class="text-xs bg-black/30 px-2 py-1 rounded">Round -</span>
             </div>
-            <div id="keirinContainer" class="p-4 space-y-3 overflow-y-auto flex-grow">
+            <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow">
                 <div class="text-center text-slate-500 py-10 animate-pulse">Waiting for data...</div>
             </div>
         </div>
@@ -71,7 +69,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Get Event ID
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
@@ -96,46 +93,97 @@
                     return;
                 }
 
-                // Update Round Badge
                 badge.innerText = data.isFinished ? "FINAL STANDINGS" : "Round " + (data.roundCounter || 1);
 
-                // If Finished, Show Results
+                // --- 1. RENDER CURRENT ROUND (TOP) ---
                 if(data.isFinished) {
-                    // Simple result list
-                    data.heats.forEach(h => {
-                       h.res.forEach((rid, i) => {
-                           let r = data.riders.find(x => x.id == rid);
-                           if(r) {
-                               let color = i===0 ? "text-yellow-400 font-bold" : "text-slate-300";
-                               box.innerHTML += `<div class="bg-slate-700/50 p-2 rounded flex justify-between ${color}"><span>${i+1}. ${r.name}</span><span>${h.name}</span></div>`;
-                           }
-                       });
-                    });
-                    return;
+                    // Show Final Standings if finished
+                    box.innerHTML += `<div class="bg-green-900/30 p-3 rounded border border-green-700/50 mb-4 animate-[fade-in_0.5s]">
+                        <div class="text-center font-bold text-green-400 mb-2 border-b border-green-700/50 pb-2">FINAL RESULTS</div>
+                        ${renderFinals(data.heats, data.riders)}
+                    </div>`;
+                } else {
+                    // Show Active Heats
+                    box.innerHTML += `<div class="text-xs uppercase font-bold text-slate-400 mb-2">Current Round</div>`;
+                    data.heats.forEach(h => { box.innerHTML += renderHeatCard(h, data.riders); });
                 }
 
-                // Show Active Heats
-                data.heats.forEach(h => {
-                    let html = `<div class="bg-slate-700 rounded border border-slate-600 overflow-hidden mb-2">
-                        <div class="bg-black/20 p-2 text-xs font-bold text-slate-400 flex justify-between">
-                            <span>${h.name}</span><span>${h.riders.length} Riders</span>
-                        </div>
-                        <div class="p-2 space-y-1">`;
-                    
-                    h.riders.forEach(r => {
-                        let idx = h.res ? h.res.indexOf(r.id) : -1;
-                        let status = idx !== -1 ? `<span class="text-green-400 font-bold text-xs ml-2">✓ FINISHED (${idx+1})</span>` : '';
-                        
-                        html += `<div class="flex items-center text-sm">
-                            <span class="w-6 text-slate-500 text-xs">#${r.bib||'-'}</span>
-                            <span class="font-medium text-slate-200">${r.name}</span>
-                            ${status}
+                // --- 2. RENDER HISTORY (BOTTOM) ---
+                if(data.history && data.history.length > 0) {
+                    // Reverse to show newest history first (Round 2, then Round 1)
+                    [...data.history].reverse().forEach(hist => {
+                        box.innerHTML += `<div class="mt-6 pt-4 border-t border-slate-700/50">
+                            <div class="text-xs uppercase font-bold text-slate-500 mb-2 flex items-center justify-between">
+                                <span>Round ${hist.round} (Completed)</span>
+                                <span class="text-[0.6rem] bg-slate-700 px-1 rounded text-slate-400">HISTORY</span>
+                            </div>
+                            <div class="opacity-60 hover:opacity-100 transition-opacity">
+                                ${hist.heats.map(h => renderHeatCard(h, data.riders, true)).join('')}
+                            </div>
                         </div>`;
                     });
-                    
-                    box.innerHTML += html + `</div></div>`;
-                });
+                }
             });
+        }
+
+        function renderHeatCard(h, riders, isHistory=false) {
+            let html = `<div class="bg-slate-700 rounded border ${isHistory?'border-slate-700':'border-slate-600'} overflow-hidden mb-2 shadow-sm">
+                <div class="bg-black/20 p-2 text-xs font-bold text-slate-400 flex justify-between">
+                    <span>${h.name}</span><span>${h.riders ? h.riders.length : 0} Riders</span>
+                </div>
+                <div class="p-2 space-y-1">`;
+            
+            if(h.riders) {
+                h.riders.forEach(r => {
+                    let idx = (h.res||[]).indexOf(r.id);
+                    let status = idx !== -1 ? `<span class="text-green-400 font-bold text-xs ml-2">(${idx+1})</span>` : '';
+                    let dim = isHistory ? "text-slate-400" : "text-slate-200";
+                    // Highlight winners even in history
+                    if(idx===0 && isHistory) dim = "text-green-300 font-bold"; 
+
+                    html += `<div class="flex items-center text-sm justify-between">
+                        <div class="flex items-center">
+                            <span class="w-8 text-slate-500 text-xs font-mono">#${r.bib||'-'}</span>
+                            <span class="font-medium ${dim}">${r.name}</span>
+                        </div>
+                        ${status}
+                    </div>`;
+                });
+            }
+            return html + `</div></div>`;
+        }
+
+        function renderFinals(heats, riders) {
+            let list = [];
+            // Re-sort finals logic to match Admin view
+            heats.forEach((h, heatIdx) => {
+               (h.res||[]).forEach((rid, placeIdx) => {
+                   let r = riders.find(x => x.id == rid);
+                   if(r) list.push({ ...r, heatIdx, placeIdx, heatName: h.name });
+               });
+            });
+            list.sort((a,b) => {
+                if(a.heatIdx !== b.heatIdx) return a.heatIdx - b.heatIdx;
+                return a.placeIdx - b.placeIdx;
+            });
+
+            let html = '';
+            list.forEach((r, i) => {
+                let color = i===0 ? "text-yellow-400 font-bold" : "text-slate-300";
+                let badge = "";
+                if(i===0) badge = "🥇";
+                if(i===1) badge = "🥈";
+                if(i===2) badge = "🥉";
+
+                html += `<div class="flex justify-between items-center text-sm ${color} border-b border-white/5 py-2 last:border-0 hover:bg-white/5 px-2 rounded transition">
+                   <div class="flex items-center gap-2">
+                       <span class="w-6 text-right">${i+1}.</span>
+                       <span>${r.name} ${badge}</span>
+                   </div>
+                   <span class="text-xs opacity-40 font-mono">${r.heatName}</span>
+               </div>`;
+            });
+            return html;
         }
     </script>
 </body>
