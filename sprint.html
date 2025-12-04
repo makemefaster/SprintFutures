@@ -16,46 +16,51 @@
         :root { --primary: #002366; --accent: #E30613; --bg: #f5f5f5; --card: #ffffff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 80px; }
         
-        /* 1. LAYOUT & NAV */
-        .nav-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        /* NAV & HEADER */
+        .nav-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .nav-group { display: flex; align-items: center; gap: 10px; }
         .home-btn { text-decoration: none; background: #ddd; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: #333; }
+        .unlock-btn { background: none; border: 1px solid #999; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; color: #666; }
+        
+        /* SPONSOR */
         .sponsor-mini { margin-bottom: 20px; padding: 10px; background: white; border-bottom: 4px solid #00d2ff; text-align: center; }
 
-        /* 2. CARDS */
+        /* CARDS */
         .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .hidden { display: none !important; }
         
-        /* 3. BUTTONS */
+        /* BUTTONS */
         .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn-action { width: 100%; background: #28a745; margin-top: 10px; padding: 15px; font-size: 1.1em; }
         .btn-danger { background: var(--accent); font-size: 0.8em; }
         
-        /* 4. TABLES & INPUTS */
+        /* TABLES & INPUTS */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #eee; text-align: left; padding: 10px; border-bottom: 2px solid #ccc; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
         input.num-box { width: 50px; text-align: center; font-weight: bold; }
         textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; box-sizing: border-box; }
 
-        /* 5. HEAT GRID */
+        /* HEAT GRID */
         .heat-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .heat-card { background: white; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .heat-header { background: var(--primary); color: white; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
         
         .rider-select { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Interactive Logic: Admin vs Spectator */
+        /* ADMIN VS SPECTATOR VISIBILITY */
         body.admin-mode .rider-select:hover { background: #f0f0f0; }
-        body:not(.admin-mode) .rider-select { pointer-events: none; }
-        body:not(.admin-mode) .admin-only { display: none !important; }
+        body:not(.admin-mode) .rider-select { pointer-events: none; } /* Disable clicking for spectators */
+        body:not(.admin-mode) .admin-only { display: none !important; } /* Hide buttons for spectators */
+        body.admin-mode .spectator-only { display: none !important; } /* Hide "Unlock" button for admins */
 
-        /* 6. COLORS */
+        /* COLORS */
         .pos-1 { background: #d4edda; border-left: 5px solid #28a745; } 
         .pos-2 { background: #fff3cd; border-left: 5px solid #ffc107; } 
         .pos-3 { background: #f8d7da; border-left: 5px solid #dc3545; }
         .rank-1 { background: #fff9c4; font-weight: bold; }
 
-        /* 7. LOGIN OVERLAY */
+        /* LOGIN OVERLAY */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #002366; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
@@ -69,8 +74,15 @@
     </a>
 
     <div class="nav-bar">
-        <a href="index.html" class="home-btn">🏠 Home</a>
-        <h2 style="margin:0;">Sprint Ladder <span id="eventTag" style="font-size:0.6em; background:#E30613; color:white; padding:2px 6px; border-radius:4px;">...</span></h2>
+        <div class="nav-group">
+            <a href="index.html" class="home-btn">🏠 Home</a>
+            <h2 style="margin:0;">Sprint Ladder <span id="eventTag" style="font-size:0.6em; background:#E30613; color:white; padding:2px 6px; border-radius:4px;">...</span></h2>
+        </div>
+        <button class="unlock-btn spectator-only" onclick="requestAdmin()">🔓 Admin Login</button>
+    </div>
+
+    <div class="spectator-only" style="background:#e3f2fd; padding:10px; margin-bottom:20px; border-radius:5px; text-align:center; color:#002366; font-size:0.9em;">
+        👁️ <strong>Spectator Mode:</strong> View only. To edit, click "Admin Login".
     </div>
 
     <div id="loginOverlay">
@@ -143,18 +155,18 @@
     </div>
 
 <script>
-    // --- 1. FIREBASE CONFIG (YOUR KEYS) ---
+    // --- 1. YOUR FIREBASE KEYS ---
     const firebaseConfig = {
-        apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-        authDomain: "sprintfutures.firebaseapp.com",
-        projectId: "sprintfutures",
-        storageBucket: "sprintfutures.firebasestorage.app",
-        messagingSenderId: "535060943616",
-        appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-        measurementId: "G-9XFQV3PLEV"
+      apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+      authDomain: "sprintfutures.firebaseapp.com",
+      projectId: "sprintfutures",
+      storageBucket: "sprintfutures.firebasestorage.app",
+      messagingSenderId: "535060943616",
+      appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+      measurementId: "G-9XFQV3PLEV"
     };
 
-    // Initialize Firebase
+    // Initialize
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -175,19 +187,23 @@
             document.getElementById('eventTag').innerText = eventID;
             
             if(urlAuth === 'admin') {
-                isAdmin = true;
-                document.body.classList.add('admin-mode');
-                document.getElementById('loginOverlay').style.display = 'none';
-                startSync();
+                enableAdmin();
             } else {
-                // Spectator: Check if they are just viewing, or need to login
-                // We default to spectator mode if ID is present but no auth
+                // Default to spectator, hide login
                 document.getElementById('loginOverlay').style.display = 'none';
                 startSync();
             }
         }
     };
 
+    function enableAdmin() {
+        isAdmin = true;
+        document.body.classList.add('admin-mode');
+        document.getElementById('loginOverlay').style.display = 'none';
+        startSync();
+    }
+
+    // Called by the main Login Overlay
     function doLogin() {
         const id = document.getElementById('loginId').value.trim().toLowerCase();
         const pin = document.getElementById('loginPin').value.trim();
@@ -196,6 +212,17 @@
         let url = `?event=${id}`;
         if(pin === PIN) url += `&auth=admin`;
         window.location.href = url;
+    }
+
+    // Called by the top-right "Unlock" button
+    function requestAdmin() {
+        const pin = prompt("Enter Admin PIN:");
+        if(pin === PIN) {
+            // Reload page with admin params
+            window.location.href = window.location.href + "&auth=admin";
+        } else {
+            alert("Incorrect PIN");
+        }
     }
 
     // --- 4. FIREBASE SYNC ---
@@ -303,6 +330,7 @@
         pool.sort((a,b)=>a.time-b.time);
         
         heats=[]; 
+        // Heat A always 2
         if(pool.length>=2) heats.push({name:"Heat A", riders:[pool.shift(), pool.shift()], res:[]});
         
         let c=66; // B
@@ -370,24 +398,27 @@
         let rank=1;
         
         heats.forEach(h => {
-            // Did they race?
             let raced = (h.res && h.res.length===h.riders.length);
-            
-            // If raced, use results. If early end, sort by Time.
             let sorted = raced ? h.res.map(id=>riders.find(x=>x.id==id)) : [...h.riders].sort((a,b)=>a.time-b.time);
             
             sorted.forEach((r,idx) => {
                 let cls = rank===1?'rank-1':'';
                 let note = raced ? `${h.name} (${idx+1}${ordinal(idx+1)})` : `${h.name} (Seeded)`;
                 
-                tb.innerHTML+=`<tr class="${cls}">
-                    <td>${rank++}</td>
-                    <td>${r.bib||''}</td>
-                    <td><strong>${r.name}</strong></td>
-                    <td>${r.cat||''}</td>
-                    <td>${r.time}</td>
-                    <td style="font-size:0.8em; color:#666;">${note}</td>
-                </tr>`;
+                // SAFETY CHECK: r might be undefined if logic drifted, prevent crash
+                if(r) {
+                    let catDisplay = r.cat || '';
+                    let bibDisplay = r.bib || '';
+                    
+                    tb.innerHTML+=`<tr class="${cls}">
+                        <td>${rank++}</td>
+                        <td>${bibDisplay}</td>
+                        <td><strong>${r.name}</strong></td>
+                        <td>${catDisplay}</td>
+                        <td>${r.time}</td>
+                        <td style="font-size:0.8em; color:#666;">${note}</td>
+                    </tr>`;
+                }
             });
         });
     }
