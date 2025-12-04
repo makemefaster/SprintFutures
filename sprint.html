@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprint Ladder | SprintFutures</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002366">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -159,7 +165,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // 1. EXPOSE FUNCTIONS IMMEDIATELY (So Button Works even if Firebase is slow)
+        // 1. EXPOSE FUNCTIONS
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); } };
         window.importNames = importNames;
@@ -194,7 +200,14 @@
             document.getElementById('initStatus').className = "text-red-500 font-bold mt-2";
         }
 
-        // 4. STATE
+        // 4. PWA INSTALLER
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Service Worker Registered"))
+                .catch(err => console.log("SW Fail", err));
+        }
+
+        // 5. STATE
         let riders = [];
         let heats = [];
         let roundCounter = 1;
@@ -204,7 +217,7 @@
         const PIN = "1234";
         const TOTAL_ROUNDS = 3; // Heat -> Semi -> Final
 
-        // 5. INIT LOGIC
+        // 6. INIT LOGIC
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
         const urlAuth = p.get('auth');
