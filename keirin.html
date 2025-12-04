@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keirin Ladder | SprintFutures</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002366">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -192,7 +198,14 @@
             document.getElementById('initStatus').className = "text-red-500 font-bold mt-2";
         }
 
-        // 4. STATE
+        // 4. PWA INSTALLER
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Service Worker Registered"))
+                .catch(err => console.log("SW Fail", err));
+        }
+
+        // 5. STATE
         let riders = [];
         let heats = [];
         let roundCounter = 1;
@@ -202,7 +215,7 @@
         const PIN = "1234"; 
         const TOTAL_ROUNDS = 2; // Heat -> Final
 
-        // 5. INIT LOGIC
+        // 6. INIT LOGIC
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
         const urlAuth = p.get('auth');
@@ -249,19 +262,29 @@
                     roundCounter = data.roundCounter || 1;
                     updateCats();
                     
-                    if(data.isFinished) {
-                        showPhase('phase-standings');
-                        renderResults(data.earlyEnd);
-                    } else if(heats.length > 0) {
-                        showPhase('phase-racing');
-                        renderHeats();
-                    } else {
-                        showPhase('phase-qualifying');
-                        renderTable();
+                    if(!window.manualPhase) {
+                        if(data.isFinished) {
+                            showPhase('phase-standings');
+                            renderResults(data.earlyEnd);
+                        } else if(heats.length > 0) {
+                            showPhase('phase-racing');
+                            renderHeats();
+                        } else {
+                            showPhase('phase-qualifying');
+                            renderTable();
+                        }
                     }
                 } else {
                     renderTable();
                     showPhase('phase-qualifying');
+                }
+            }, (error) => {
+                // Specific Error Handling
+                console.error("Database Error:", error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    alert("Access Denied: Check Security Rules in Firebase Console.");
+                } else {
+                    alert("Database Error: " + error.message + "\n\nDid you create the Realtime Database in the console?");
                 }
             });
         }
@@ -281,6 +304,12 @@
                 document.getElementById(pid).classList.add('hidden');
             });
             document.getElementById(id).classList.remove('hidden');
+        }
+
+        function forcePhase(phaseId) {
+            window.manualPhase = true;
+            showPhase(phaseId);
+            if(phaseId === 'phase-qualifying') renderTable();
         }
 
         // --- IMPORT LOGIC ---
@@ -374,7 +403,7 @@
 
         function renderHeats() {
             const c=document.getElementById('heatsContainer'); c.innerHTML='';
-            document.getElementById('roundBadge').innerText = roundCounter >= TOTAL_ROUNDS ? "FINAL ROUND" : "Round "+roundCounter;
+            document.getElementById('roundBadge').innerText = "Round "+roundCounter;
             
             heats.forEach((h,i) => {
                 let html=`
