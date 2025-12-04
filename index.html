@@ -230,7 +230,12 @@
         
         window.startDemo = function() {
             const randomID = 'demo-' + Math.floor(1000 + Math.random() * 9000);
-            window.location.href = `index.html?event=${randomID}&auth=admin`;
+            
+            // Fix: Use URL object
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', randomID);
+            url.searchParams.set('auth', 'admin');
+            window.location.href = url.toString();
         };
 
         window.showLogin = function() {
@@ -240,13 +245,21 @@
 
         window.manualLogin = function() {
             const id = document.getElementById('hubEventId').value.trim().toLowerCase();
-            if(id) window.location.href = `index.html?event=${id}`;
+            if(id) {
+                // Fix: Use URL object
+                const url = new URL(window.location.href);
+                url.searchParams.set('event', id);
+                window.location.href = url.toString();
+            }
         };
 
         window.nav = function(page) {
-            let link = `${page}.html?event=${urlEvent}`;
-            if(urlAuth === 'admin') link += `&auth=admin`;
-            window.location.href = link;
+            // Fix: Construct URL properly based on current origin
+            const url = new URL(page + '.html', window.location.origin);
+            if(urlEvent) url.searchParams.set('event', urlEvent);
+            if(urlAuth === 'admin') url.searchParams.set('auth', 'admin');
+            
+            window.location.href = url.toString();
         };
     </script>
 </body>
