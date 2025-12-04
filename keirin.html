@@ -98,6 +98,65 @@
 </div>
 
 <script>
+    // ... (Firebase Config stays the same) ...
+    const db = firebase.database();
+
+    // --- STATE ---
+    let riders=[], heats=[], roundCounter=1, cats=new Set();
+    let eventID = ""; 
+    let isAdmin = false;
+    const ADMIN_PIN = "1234"; 
+
+    // --- AUTO-LOGIN LOGIC (NEW) ---
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlEvent = urlParams.get('event');
+        const urlAuth = urlParams.get('auth');
+
+        if(urlEvent) {
+            // 1. Found "Magic Link" credentials
+            eventID = urlEvent;
+            if(urlAuth === 'admin') {
+                isAdmin = true;
+                document.body.classList.add('admin-mode');
+            } else {
+                applySpectatorMode();
+            }
+            // Skip login screen, start sync immediately
+            document.getElementById('loginOverlay').style.display = 'none';
+            startSync();
+        } else {
+            // No credentials? Show Login Screen
+            document.getElementById('loginOverlay').style.display = 'flex';
+        }
+    };
+
+    function attemptLogin() {
+        const eid = document.getElementById('eventIdInput').value.trim().toLowerCase();
+        const pin = document.getElementById('adminPinInput').value.trim();
+        if(!eid) return alert("Enter Event ID");
+
+        eventID = eid;
+        if(pin === ADMIN_PIN) {
+            isAdmin = true;
+            document.body.classList.add('admin-mode');
+        } else {
+            isAdmin = false;
+            applySpectatorMode();
+        }
+        
+        document.getElementById('loginOverlay').style.display = 'none';
+        startSync();
+    }
+
+    function applySpectatorMode() {
+        // Disable inputs/buttons visually
+        let style = document.createElement('style');
+        style.innerHTML = `button:not(.home-btn), input, select, textarea { pointer-events: none; opacity: 0.8; } .nav-bar button, .nav-bar a { pointer-events: auto; opacity: 1; }`;
+        document.head.appendChild(style);
+    }
+    
+    // ... (Rest of your sync/save logic remains the same) ...
     // --- KEIRIN LOGIC ENGINE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
     const STORAGE_KEY='keirinData_Pkg';
