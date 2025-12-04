@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprint Ladder</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#002366">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -138,46 +139,33 @@
     </div>
 
 <script>
-    // --- 1. FIREBASE CONFIGURATION (Corrected for Web) ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
-        apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-        authDomain: "sprintfutures.firebaseapp.com",
-        projectId: "sprintfutures",
-        storageBucket: "sprintfutures.firebasestorage.app",
-        messagingSenderId: "535060943616",
-        appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-        measurementId: "G-9XFQV3PLEV"
+      apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+      authDomain: "sprintfutures.firebaseapp.com",
+      projectId: "sprintfutures",
+      storageBucket: "sprintfutures.firebasestorage.app",
+      messagingSenderId: "535060943616",
+      appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+      measurementId: "G-9XFQV3PLEV"
     };
 
-    // Initialize Firebase (Safety Check)
-    let db;
-    try {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        db = firebase.database();
-        console.log("Firebase Connected");
-    } catch (error) {
-        alert("Database Error: " + error.message);
-        console.error(error);
-    }
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // --- 2. STATE ---
+    // --- STATE ---
     let riders=[], heats=[], roundCounter=1, cats=new Set();
     let eventID = "";
     let isAdmin = false;
-    const PIN = "1234"; // ADMIN PASSWORD
+    const PIN = "1234"; 
 
-    // --- 3. LOGIN LOGIC (The part that was broken) ---
-    
-    // Auto-login if URL has ?event=...
+    // --- INIT ---
     window.onload = () => {
         const p = new URLSearchParams(window.location.search);
         const urlEvent = p.get('event');
         const urlAuth = p.get('auth');
 
         if(urlEvent) {
-            // Event ID found in link -> Skip login screen
             eventID = urlEvent;
             document.getElementById('eventTag').innerText = eventID;
             
@@ -190,23 +178,6 @@
         }
     };
 
-    // Manual Login (When clicking the ENTER button)
-    function doLogin() {
-        const idInput = document.getElementById('loginId');
-        const pinInput = document.getElementById('loginPin');
-        
-        const id = idInput.value.trim().toLowerCase();
-        const pin = pinInput.value.trim();
-        
-        if(!id) return alert("Please enter an Event ID (e.g. test1)");
-        
-        let url = `?event=${id}`;
-        if(pin === PIN) url += `&auth=admin`;
-        
-        // Reload page with new credentials
-        window.location.href = url;
-    }
-
     function enableAdmin() {
         isAdmin = true;
         document.body.classList.add('admin-mode');
@@ -214,22 +185,28 @@
         startSync();
     }
 
-    // Unlocks admin mode if you are viewing as spectator
-    function requestAdmin() {
-        const pin = prompt("Enter Admin PIN:");
-        if(pin === PIN) {
-            window.location.href = window.location.href + "&auth=admin";
-        } else {
-            alert("Incorrect PIN");
-        }
+    function doLogin() {
+        const id = document.getElementById('loginId').value.trim().toLowerCase();
+        const pin = document.getElementById('loginPin').value.trim();
+        if(!id) return alert("Enter Event ID");
+        
+        let url = `?event=${id}`;
+        if(pin === PIN) url += `&auth=admin`;
+        window.location.href = url;
     }
 
-    // --- 4. DATA SYNC ---
+    function requestAdmin() {
+        const pin = prompt("Enter Admin PIN:");
+        if(pin === PIN) window.location.href = window.location.href + "&auth=admin";
+        else alert("Incorrect PIN");
+    }
+
+    // --- FIREBASE SYNC ---
     function startSync() {
-        // Listen for changes in the specific Event ID
         db.ref(`events/${eventID}/sprint`).on('value', snap => {
             const data = snap.val();
             if(data) {
+                // Existing Event Data Found
                 riders = data.riders || [];
                 heats = data.heats || [];
                 roundCounter = data.roundCounter || 1;
@@ -249,8 +226,10 @@
                     }
                 }
             } else {
-                // New event (no data yet)
-                renderTable();
+                // NEW EVENT (Empty Database)
+                // This is the fix: Force show the import screen
+                renderTable(); 
+                showPhase('phase-qualifying');
             }
         });
     }
@@ -265,15 +244,14 @@
         });
     }
 
-    // --- 5. APP FUNCTIONS ---
-    
-    // Nav override
+    // --- MANUAL OVERRIDE ---
     window.forcePhase = (phaseId) => {
         window.manualPhase = true;
         showPhase(phaseId);
         if(phaseId === 'phase-qualifying') renderTable();
     }
 
+    // --- LOGIC ---
     window.importNames = () => {
         const val = document.getElementById('importArea').value;
         if(!val.trim()) return alert("Paste names first.");
@@ -282,12 +260,10 @@
         lines.forEach(l => {
             if(!l.trim()) return;
             const p = l.split(',').map(s => s.trim());
-            
             let name = p[0];
             let bib = '';
             let cat = '';
 
-            // Smart Parser
             if(p.length > 1) {
                 if(p[1].length < 5 && !isNaN(p[1])) {
                     bib = p[1];
@@ -302,12 +278,11 @@
         save();
     }
 
-    window.wipeEvent = () => { if(confirm("RESET ALL DATA? This cannot be undone.")) { riders=[]; heats=[]; roundCounter=1; save(false); window.manualPhase=false; }}
+    window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; roundCounter=1; save(false); window.manualPhase=false; }}
 
     function updateCats() {
         cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
         const s = document.getElementById('categoryFilter');
-        // Only update if options changed (prevents dropdown resetting while selecting)
         if(s.options.length-1 !== cats.size) {
             s.innerHTML='<option value="ALL">All Categories</option>';
             Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`);
@@ -323,7 +298,7 @@
     function renderTable() {
         const tb=document.getElementById('riderTable'); tb.innerHTML='';
         riders.forEach((r,i) => {
-            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" style="color:red; font-weight:bold; cursor:pointer;">X</button>` : '';
+            let ctrl = isAdmin ? `<button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" class="btn-danger">X</button>` : '';
             let inputs = isAdmin ? 
                 `<td><input style="width:40px" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
                  <td>${r.name}</td>
@@ -334,6 +309,7 @@
         });
     }
 
+    // --- HEATS ---
     window.generateHeats = () => {
         const cat = document.getElementById('categoryFilter').value;
         let pool = (cat==='ALL') ? [...riders] : riders.filter(r=>r.cat===cat);
