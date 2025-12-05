@@ -23,7 +23,7 @@
                 </div>
             </div>
             <div class="flex space-x-2">
-                <a href="live.html" target="_blank" class="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700">📺 Spectator View</a>
+                <button id="liveBtn" onclick="openLive()" class="hidden bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700">📺 Spectator View</button>
             </div>
         </div>
 
@@ -99,6 +99,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
+        // --- EXPOSE FUNCTIONS TO HTML ---
         window.importNames = importNames;
         window.updateRider = updateRider;
         window.wipeRiders = wipeRiders;
@@ -202,6 +203,8 @@
         function renderTable() {
             const tb = document.getElementById('riderTable');
             tb.innerHTML = '';
+            
+            // Sort by time (ascending)
             riders.sort((a,b) => a.time - b.time);
 
             riders.forEach((r, i) => {
