@@ -190,30 +190,8 @@
         }
         document.getElementById('eventTag').innerText = eventID ? eventID.toUpperCase() : "DEMO";
 
-        if(eventID) {
-            document.getElementById('loginOverlay').classList.add('hidden');
-            startSync();
-        } else {
-            document.getElementById('loginOverlay').classList.remove('hidden');
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
-                e.preventDefault(); triggerAdmin();
-            }
-        });
-
-        function doLogin() {
-            const id = document.getElementById('loginId').value.trim().toLowerCase();
-            const pin = document.getElementById('loginPin').value.trim();
-            if(!id) return alert("Enter Event ID");
-            const url = new URL(window.location.href);
-            url.searchParams.set('event', id);
-            if(pin===PIN) url.searchParams.set('auth', 'admin');
-            window.location.href = url.toString();
-        }
-
-        function startSync() {
+        // SYNC
+        if (eventID) {
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 updateCats();
@@ -234,7 +212,25 @@
                         else { showPhase('phase-qualifying'); renderTable(); }
                     }
                 } else { renderTable(); showPhase('phase-qualifying'); }
+            }, (error) => {
+                if(error.code === 'PERMISSION_DENIED') alert("Access Denied: Check Security Rules.");
             });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
+                e.preventDefault(); triggerAdmin();
+            }
+        });
+
+        function doLogin() {
+            const id = document.getElementById('loginId').value.trim().toLowerCase();
+            const pin = document.getElementById('loginPin').value.trim();
+            if(!id) return alert("Enter Event ID");
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            if(pin===PIN) url.searchParams.set('auth', 'admin');
+            window.location.href = url.toString();
         }
 
         function save(finished=false, early=false) {
@@ -250,7 +246,7 @@
         }
         function forcePhase(p) { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); }
 
-        // --- UPDATED IMPORT LOGIC ---
+        // --- IMPORT LOGIC ---
         function importNames() {
             const val = document.getElementById('importArea').value;
             if(!val.trim()) return alert("Paste names first.");
@@ -307,7 +303,7 @@
             });
         }
 
-        // --- NEW: CATEGORY-AWARE GENERATION ---
+        // --- CATEGORY-AWARE GENERATION ---
         function generateHeats() {
             const selectedCat = document.getElementById('categoryFilter').value;
             const sizePref = parseInt(document.getElementById('heatSizeSelector').value); 
@@ -320,7 +316,7 @@
             }
 
             heats = [];
-            let heatChar = 65; // 'A'
+            let heatChar = 65; 
 
             categoriesToRun.forEach(cat => {
                 let pool = riders.filter(r => r.cat === cat);
@@ -329,7 +325,7 @@
 
                 while(pool.length > 0) {
                     let s = sizePref; 
-                    if(sizePref === 3 && pool.length === 4) s = 2; // Avoid 3 vs 1
+                    if(sizePref === 3 && pool.length === 4) s = 2; 
                     if(pool.length === 2) s = 2;
                     if(pool.length === 1) {
                         if(heats.length > 0) heats[heats.length-1].riders.push(pool.shift());
@@ -347,13 +343,10 @@
                     });
                 }
             });
-            
-            if(heats.length === 0) return alert("Not enough riders to generate heats.");
 
-            roundCounter=1; 
-            history=[]; 
-            window.manualPhase = false;
-            save();
+            if(heats.length === 0) return alert("Not enough riders.");
+            
+            roundCounter = 1; history = []; window.manualPhase = false; save();
         }
 
         function renderHeats() {
@@ -404,7 +397,6 @@
         function finishRound() {
             for(let h of heats) if((h.res||[]).length!=h.riders.length) return alert("Please finish all heats first.");
             
-            // Save history
             if(!history) history = [];
             history.push({
                 round: roundCounter,
