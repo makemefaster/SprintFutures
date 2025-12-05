@@ -10,34 +10,41 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Smooth Scrolling Ticker Animation */
-        .marquee-container {
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-        }
-        .marquee-content {
-            display: inline-block;
-            animation: marquee 30s linear infinite;
-        }
-        @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); } /* Move half way (since we duplicate content) */
-        }
+        /* Marquee Ticker */
+        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; }
+        .marquee-content { display: inline-block; animation: marquee 30s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
-        /* Neon Glow Effect for Main Sponsor */
-        .neon-text {
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(56, 189, 248, 0.3);
+        /* Neon Glow */
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(56, 189, 248, 0.3); }
+
+        /* Podium Effects */
+        .podium-gold {
+            background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%);
+            background-size: 200% 200%;
+            animation: shimmer 3s linear infinite;
+            color: #422a02; border: 1px solid #ffd700;
         }
+        .podium-silver {
+            background: linear-gradient(135deg, #3d4349 0%, #aeb5bc 50%, #3d4349 100%);
+            background-size: 200% 200%;
+            animation: shimmer 4s linear infinite;
+            color: #1a202c; border: 1px solid #cbd5e0;
+        }
+        .podium-bronze {
+            background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%);
+            background-size: 200% 200%;
+            animation: shimmer 5s linear infinite;
+            color: #2d1a12; border: 1px solid #d69e2e;
+        }
+        @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
 
-    <!-- HEADER: Expanded Advertising Area -->
+    <!-- HEADER -->
     <div class="bg-slate-900 border-b border-slate-700 p-4 shadow-xl z-20">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            <!-- Left: Event Info -->
             <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-start">
                 <div class="flex items-center space-x-3">
                     <a href="index.html" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-300 transition border border-slate-600">
@@ -50,12 +57,9 @@
                 </div>
             </div>
             
-            <!-- Right: PRIMARY SPONSOR (The "Big Ad") -->
             <div class="w-full md:w-auto">
                 <div class="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-600 rounded-xl p-4 flex flex-col items-center md:items-end shadow-2xl relative overflow-hidden group">
-                    <!-- Shine Effect -->
                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-                    
                     <p class="text-[0.6rem] text-sky-400 uppercase tracking-[0.3em] font-bold mb-1">Official Event Partner</p>
                     <div class="font-black text-2xl md:text-4xl text-white tracking-tighter italic neon-text">
                         FREQUENCY <span class="text-sky-400">CYCLEWORKS</span>
@@ -63,38 +67,37 @@
                     <p class="text-xs text-slate-400 font-mono tracking-wide mt-1">High Performance Track Components</p>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- MAIN CONTENT: Race Grids -->
-    <div class="flex-grow p-4 overflow-y-auto">
+    <!-- MAIN CONTENT -->
+    <div class="flex-grow p-4 overflow-hidden relative">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             
             <!-- SPRINT COLUMN -->
             <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
-                <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md">
+                <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md z-10">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🚴</span>
                         <h2 class="font-black text-xl italic uppercase tracking-wide">Sprint Ladder</h2>
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
 
             <!-- KEIRIN COLUMN -->
             <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
-                <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md">
+                <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md z-10">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🏁</span>
                         <h2 class="font-black text-xl italic uppercase tracking-wide">Keirin Ladder</h2>
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -102,32 +105,26 @@
         </div>
     </div>
 
-    <!-- FOOTER: SPONSOR TICKER (Flashy Marquee) -->
+    <!-- FOOTER -->
     <div class="bg-black border-t-4 border-orange-600 relative z-30">
-        <div class="absolute left-0 top-0 bottom-0 bg-orange-600 text-white font-black text-xs px-2 flex items-center z-10 shadow-lg uppercase tracking-widest writing-vertical-lr sm:writing-horizontal-tb">
-            Sponsors
-        </div>
-        
+        <div class="absolute left-0 top-0 bottom-0 bg-orange-600 text-white font-black text-xs px-2 flex items-center z-10 shadow-lg uppercase tracking-widest writing-vertical-lr sm:writing-horizontal-tb">Sponsors</div>
         <div class="marquee-container py-3 bg-gradient-to-b from-slate-900 to-black">
-            <!-- Content duplicated for seamless loop -->
             <div class="marquee-content flex items-center space-x-16 px-4">
-                <!-- Set 1 -->
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
-                
-                <!-- Set 2 (Duplicate) -->
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
-                <span class="text-xl font-bold text-slate-300 flex items-center hover:text-white transition"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
+                 <!-- Duplicate -->
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
             </div>
         </div>
     </div>
@@ -153,6 +150,49 @@
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
+        // --- AUTO SCROLL LOGIC ---
+        let lastUpdate = Date.now();
+        let scrollInterval = null;
+        
+        function resetScrollTimer() {
+            lastUpdate = Date.now();
+            stopScrolling(); // Stop if user just updated data
+        }
+        
+        // Check for idleness every second
+        setInterval(() => {
+            if (Date.now() - lastUpdate > 60000) { // 60 Seconds
+                startScrolling();
+            }
+        }, 1000);
+
+        function startScrolling() {
+            if (scrollInterval) return; // Already scrolling
+            const containers = [document.getElementById('sprintContainer'), document.getElementById('keirinContainer')];
+            
+            scrollInterval = setInterval(() => {
+                containers.forEach(el => {
+                    if(el && el.scrollHeight > el.clientHeight) {
+                        el.scrollTop += 1; // Pixel per tick
+                        if(el.scrollTop + el.clientHeight >= el.scrollHeight) {
+                            // Pause at bottom then reset
+                            setTimeout(() => { el.scrollTop = 0; }, 2000);
+                        }
+                    }
+                });
+            }, 50); // Speed
+        }
+
+        function stopScrolling() {
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+                // Optional: Reset to top immediately on update
+                document.getElementById('sprintContainer').scrollTop = 0;
+                document.getElementById('keirinContainer').scrollTop = 0;
+            }
+        }
+
         if(eventID) {
             document.getElementById('eventTag').innerText = "LIVE: " + eventID.toUpperCase();
             document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-red-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1 animate-pulse";
@@ -165,6 +205,8 @@
 
         function startListener(type, containerId, badgeId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
+                resetScrollTimer(); // Data came in, reset idle timer
+                
                 const data = snap.val();
                 const box = document.getElementById(containerId);
                 const badge = document.getElementById(badgeId);
@@ -192,6 +234,7 @@
 
                 // --- 2. HISTORY ---
                 if(data.history && data.history.length > 0) {
+                    // Reverse to show newest history first (Round 2, then Round 1)
                     [...data.history].reverse().forEach(hist => {
                         box.innerHTML += `<div class="mt-8 pt-6 border-t-2 border-slate-700/50">
                             <div class="text-xs uppercase font-bold text-slate-500 mb-3 flex items-center justify-between">
@@ -254,15 +297,29 @@
 
             let html = '';
             list.forEach((r, i) => {
-                let color = i===0 ? "text-yellow-400 font-bold bg-yellow-900/20 border-yellow-500/30" : "text-slate-300 border-white/5 hover:bg-white/5";
-                let badge = i===0 ? "🥇" : (i===1 ? "🥈" : (i===2 ? "🥉" : `<span class="text-slate-600 text-xs font-mono ml-1">${i+1}.</span>`));
+                let podiumClass = "";
+                let badge = "";
 
-                html += `<div class="flex justify-between items-center text-sm ${color} border-b py-2 px-3 first:rounded-t-lg last:rounded-b-lg last:border-0 transition-colors">
+                if (i === 0) {
+                    podiumClass = "podium-gold shadow-lg transform scale-[1.02] mb-2 rounded-lg font-black";
+                    badge = "🏆 1ST";
+                } else if (i === 1) {
+                    podiumClass = "podium-silver mb-1 rounded-lg font-bold";
+                    badge = "🥈 2ND";
+                } else if (i === 2) {
+                    podiumClass = "podium-bronze mb-1 rounded-lg font-bold";
+                    badge = "🥉 3RD";
+                } else {
+                    podiumClass = "text-slate-400 border-b border-white/5 hover:bg-white/5";
+                    badge = `<span class="text-slate-600 text-xs font-mono">${i+1}.</span>`;
+                }
+
+                html += `<div class="flex justify-between items-center text-sm ${podiumClass} py-3 px-4 transition-all">
                    <div class="flex items-center gap-3">
-                       <span class="w-5 text-center">${badge}</span>
-                       <span>${r.name}</span>
+                       <span class="w-12">${badge}</span>
+                       <span class="uppercase tracking-wide">${r.name}</span>
                    </div>
-                   <span class="text-[0.65rem] opacity-40 font-mono uppercase tracking-wide">${r.heatName}</span>
+                   <span class="text-[0.65rem] opacity-60 font-mono uppercase tracking-wide">${r.heatName}</span>
                </div>`;
             });
             return html;
