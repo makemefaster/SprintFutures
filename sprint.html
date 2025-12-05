@@ -38,8 +38,6 @@
     </nav>
 
     <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6">
-        
-        <!-- FAIL-SAFE: Added 'hidden' class by default so it doesn't flash or get stuck -->
         <div id="loginOverlay" class="hidden fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
             <h3 class="text-2xl font-bold mb-4">Event Access</h3>
             <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm w-full max-w-sm space-y-3">
@@ -53,13 +51,21 @@
 
         <div id="phase-qualifying" class="bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-700">1. Setup Heats</h3>
+                <h3 class="font-bold text-slate-700">1. Registration & Qualifying</h3>
                 <button class="admin-only bg-red-100 text-red-600 text-xs px-3 py-1 rounded hover:bg-red-200" onclick="wipeEvent()">🗑 Reset Data</button>
             </div>
-            <div class="overflow-x-auto max-h-64 overflow-y-auto">
+            
+            <!-- ADMIN ONLY IMPORT -->
+            <div class="admin-only p-4 bg-blue-50 border-b border-blue-100">
+                <p class="text-xs text-blue-800 mb-2 font-bold">Bulk Import (Format: Name, Bib, Cat, Time)</p>
+                <textarea id="importArea" class="w-full p-2 rounded border border-blue-200 text-sm h-20 font-mono mb-2" placeholder="Jason Kenny, 105, Elite, 9.875"></textarea>
+                <button class="bg-blue-600 text-white text-sm px-4 py-2 rounded font-bold hover:bg-blue-700 w-full" onclick="importNames()">Import Riders</button>
+            </div>
+
+            <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
-                        <tr><th class="px-4 py-2">#</th><th class="px-4 py-2">Name</th><th class="px-4 py-2">Cat</th><th class="px-4 py-2">Time</th></tr>
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-50">
+                        <tr><th class="px-4 py-3">#</th><th class="px-4 py-3">Bib</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Cat</th><th class="px-4 py-3">Time</th><th class="px-4 py-3 admin-only">Action</th></tr>
                     </thead>
                     <tbody id="riderTable" class="divide-y divide-slate-100"></tbody>
                 </table>
@@ -88,7 +94,7 @@
                 <span id="roundBadge" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Round 1</span>
             </div>
             <div class="admin-only">
-                <button onclick="forcePhase('phase-qualifying')" class="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded border border-slate-300 hover:bg-slate-200">✏️ Restart / Change Category</button>
+                <button onclick="forcePhase('phase-qualifying')" class="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded border border-slate-300 hover:bg-slate-200">✏️ Modify Entry / Add Riders</button>
             </div>
             <div id="heatsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             <div class="admin-only bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
@@ -103,7 +109,7 @@
             </div>
             <table class="w-full text-sm text-left">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-50">
-                    <tr><th class="px-4 py-3">Rank</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Time</th></tr>
+                    <tr><th class="px-4 py-3">Rank</th><th class="px-4 py-3">Bib</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Cat</th><th class="px-4 py-3">Time</th></tr>
                 </thead>
                 <tbody id="resultsBody" class="divide-y divide-slate-100"></tbody>
             </table>
@@ -129,6 +135,7 @@
         // EXPOSE FUNCTIONS
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
+        window.importNames = importNames;
         window.updateRider = updateRider;
         window.generateHeats = generateHeats;
         window.res = res;
@@ -183,12 +190,10 @@
         }
         document.getElementById('eventTag').innerText = eventID ? eventID.toUpperCase() : "DEMO";
 
-        // LOGIN CHECK LOGIC
-        if (eventID) {
-            // WE ARE LOGGED IN, OVERLAY IS HIDDEN BY DEFAULT IN HTML
+        if(eventID) {
+            document.getElementById('loginOverlay').classList.add('hidden');
             startSync();
         } else {
-            // NO ID, SHOW LOGIN
             document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
@@ -229,8 +234,6 @@
                         else { showPhase('phase-qualifying'); renderTable(); }
                     }
                 } else { renderTable(); showPhase('phase-qualifying'); }
-            }, (error) => {
-                if(error.code === 'PERMISSION_DENIED') alert("Access Denied: Check Security Rules.");
             });
         }
 
@@ -246,6 +249,32 @@
             document.getElementById(id).classList.remove('hidden');
         }
         function forcePhase(p) { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); }
+
+        // --- UPDATED IMPORT LOGIC ---
+        function importNames() {
+            const val = document.getElementById('importArea').value;
+            if(!val.trim()) return alert("Paste names first.");
+            
+            val.split(/\r?\n/).forEach(l => {
+                if(!l.trim()) return;
+                const p = l.split(',').map(s=>s.trim());
+                let name=p[0], bib='', cat='', time=999;
+                
+                // Smart Parse
+                if(p.length >= 2) {
+                    if(!isNaN(p[1]) && p[1].length < 5) {
+                        bib = p[1];
+                        if(p[2]) cat = p[2];
+                        if(p[3]) time = parseFloat(p[3]) || 999;
+                    } else {
+                        cat = p[1];
+                        if(p[2]) time = parseFloat(p[2]) || 999;
+                    }
+                }
+                riders.push({id:Date.now()+Math.random(), name, bib, cat, time});
+            });
+            document.getElementById('importArea').value=''; save();
+        }
 
         function updateCats() {
             cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)});
@@ -293,13 +322,11 @@
             heats = [];
             let heatChar = 65; // 'A'
 
-            // Loop through each category separately (ISOLATION)
             categoriesToRun.forEach(cat => {
                 let pool = riders.filter(r => r.cat === cat);
                 if(pool.length < 2) return; 
                 pool.sort((a,b)=>a.time-b.time); 
 
-                // Chunking logic
                 while(pool.length > 0) {
                     let s = sizePref; 
                     if(sizePref === 3 && pool.length === 4) s = 2; // Avoid 3 vs 1
@@ -334,7 +361,6 @@
             document.getElementById('roundBadge').innerText = "Round "+roundCounter;
             
             heats.forEach((h,i) => {
-                // Show Category Name in Heat Header
                 let catLabel = h.catName ? `<span class="bg-black/30 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2">${h.catName}</span>` : '';
 
                 let html=`<div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
