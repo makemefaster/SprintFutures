@@ -38,7 +38,9 @@
     </nav>
 
     <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6">
-        <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
+        
+        <!-- FAIL-SAFE: Added 'hidden' class by default so it doesn't flash or get stuck -->
+        <div id="loginOverlay" class="hidden fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
             <h3 class="text-2xl font-bold mb-4">Event Access</h3>
             <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm w-full max-w-sm space-y-3">
                 <input id="loginId" placeholder="Event ID" class="w-full p-3 rounded bg-white text-slate-900 font-bold">
@@ -51,14 +53,13 @@
 
         <div id="phase-qualifying" class="bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-700">1. Registration & Qualifying</h3>
+                <h3 class="font-bold text-slate-700">1. Setup Heats</h3>
                 <button class="admin-only bg-red-100 text-red-600 text-xs px-3 py-1 rounded hover:bg-red-200" onclick="wipeEvent()">🗑 Reset Data</button>
             </div>
-            
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto max-h-64 overflow-y-auto">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50">
-                        <tr><th class="px-4 py-3">#</th><th class="px-4 py-3">Bib</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Cat</th><th class="px-4 py-3">Time</th><th class="px-4 py-3 admin-only">Action</th></tr>
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
+                        <tr><th class="px-4 py-2">#</th><th class="px-4 py-2">Name</th><th class="px-4 py-2">Cat</th><th class="px-4 py-2">Time</th></tr>
                     </thead>
                     <tbody id="riderTable" class="divide-y divide-slate-100"></tbody>
                 </table>
@@ -87,7 +88,7 @@
                 <span id="roundBadge" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Round 1</span>
             </div>
             <div class="admin-only">
-                <button onclick="forcePhase('phase-qualifying')" class="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded border border-slate-300 hover:bg-slate-200">✏️ Modify Entry / Add Riders</button>
+                <button onclick="forcePhase('phase-qualifying')" class="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded border border-slate-300 hover:bg-slate-200">✏️ Restart / Change Category</button>
             </div>
             <div id="heatsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             <div class="admin-only bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
@@ -102,7 +103,7 @@
             </div>
             <table class="w-full text-sm text-left">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-50">
-                    <tr><th class="px-4 py-3">Rank</th><th class="px-4 py-3">Bib</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Cat</th><th class="px-4 py-3">Time</th></tr>
+                    <tr><th class="px-4 py-3">Rank</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Time</th></tr>
                 </thead>
                 <tbody id="resultsBody" class="divide-y divide-slate-100"></tbody>
             </table>
@@ -128,7 +129,6 @@
         // EXPOSE FUNCTIONS
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
-        window.importNames = importNames;
         window.updateRider = updateRider;
         window.generateHeats = generateHeats;
         window.res = res;
@@ -178,18 +178,18 @@
         // INIT
         const p = new URLSearchParams(window.location.search);
         eventID = p.get('event');
-        
-        if(eventID) {
-            document.getElementById('eventTag').innerText = eventID.toUpperCase();
-            
-            // --- THE CRITICAL FIX: Hide overlay if ID is present ---
-            document.getElementById('loginOverlay').classList.add('hidden');
+        if (p.get('auth') === 'admin') {
+            isAdmin=true; document.body.classList.add('admin-mode');
+        }
+        document.getElementById('eventTag').innerText = eventID ? eventID.toUpperCase() : "DEMO";
 
-            if (p.get('auth') === 'admin') {
-                isAdmin=true; 
-                document.body.classList.add('admin-mode');
-            }
+        // LOGIN CHECK LOGIC
+        if (eventID) {
+            // WE ARE LOGGED IN, OVERLAY IS HIDDEN BY DEFAULT IN HTML
             startSync();
+        } else {
+            // NO ID, SHOW LOGIN
+            document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
         document.addEventListener('keydown', (e) => {
@@ -209,7 +209,6 @@
         }
 
         function startSync() {
-            if(!db) return;
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 updateCats();
@@ -335,6 +334,7 @@
             document.getElementById('roundBadge').innerText = "Round "+roundCounter;
             
             heats.forEach((h,i) => {
+                // Show Category Name in Heat Header
                 let catLabel = h.catName ? `<span class="bg-black/30 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2">${h.catName}</span>` : '';
 
                 let html=`<div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
@@ -378,6 +378,7 @@
         function finishRound() {
             for(let h of heats) if((h.res||[]).length!=h.riders.length) return alert("Please finish all heats first.");
             
+            // Save history
             if(!history) history = [];
             history.push({
                 round: roundCounter,
@@ -421,5 +422,3 @@
     </script>
 </body>
 </html>
-
-
