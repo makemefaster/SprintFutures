@@ -1,28 +1,29 @@
-const CACHE_NAME = "sprintfutures-v2";
+// WE CHANGED v2 TO v3 TO FORCE UPDATE
+const CACHE_NAME = "sprintfutures-v3"; 
+
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
+  "./admin.html",
   "./sprint.html",
   "./keirin.html",
+  "./live.html",
   "./manifest.json",
   "https://cdn.tailwindcss.com",
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap",
   "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js",
-  "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js",
-  "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"
+  "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js"
 ];
 
-// 1. Install Event: Cache all critical files
 self.addEventListener("install", (event) => {
+  self.skipWaiting(); // FORCE ACTIVATION
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("[Service Worker] Caching app shell");
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
-// 2. Activate Event: Clean up old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -35,18 +36,13 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
+  self.clients.claim(); // TAKE CONTROL IMMEDIATELY
 });
 
-// 3. Fetch Event: Serve from Cache first, then Network
 self.addEventListener("fetch", (event) => {
-  // Database requests should always go to network (live data)
-  if (event.request.url.includes("firebase")) {
-    return; 
-  }
-
+  if (event.request.url.includes("firebase")) return; 
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Return cached file if found, otherwise fetch from network
       return response || fetch(event.request);
     })
   );
