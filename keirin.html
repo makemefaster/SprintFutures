@@ -56,6 +56,7 @@
                 <button class="admin-only bg-red-100 text-red-600 text-xs px-3 py-1 rounded hover:bg-red-200" onclick="wipeEvent()">🗑 Reset Data</button>
             </div>
             
+            <!-- ADMIN ONLY IMPORT -->
             <div class="admin-only p-4 bg-blue-50 border-b border-blue-100">
                 <p class="text-xs text-blue-800 mb-2 font-bold">Bulk Import (Format: Name, Bib, Cat, Time)</p>
                 <textarea id="importArea" class="w-full p-2 rounded border border-blue-200 text-sm h-20 font-mono mb-2" placeholder="Jason Kenny, 105, Elite, 9.875"></textarea>
@@ -130,7 +131,6 @@
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
         window.importNames = importNames;
-        window.updateRider = updateRider;
         window.generateHeats = generateHeats;
         window.res = res;
         window.finishRound = finishRound;
@@ -182,7 +182,7 @@
         if(eventID) {
             document.getElementById('eventTag').innerText = eventID.toUpperCase();
             
-            // --- FAIL-SAFE: HIDE IF ID EXISTS ---
+            // FAIL-SAFE
             document.getElementById('loginOverlay').classList.add('hidden');
 
             if (p.get('auth') === 'admin') {
@@ -190,7 +190,6 @@
             }
             startSync();
         } else {
-            // SHOW IF NO ID
             document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
@@ -248,7 +247,7 @@
         }
         function forcePhase(p) { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); }
 
-        // --- UPDATED IMPORT LOGIC ---
+        // --- IMPORT LOGIC ---
         function importNames() {
             const val = document.getElementById('importArea').value;
             if(!val.trim()) return alert("Paste names first.");
@@ -258,7 +257,6 @@
                 const p = l.split(',').map(s=>s.trim());
                 let name=p[0], bib='', cat='', time=999;
                 
-                // Smart Parse
                 if(p.length >= 2) {
                     if(!isNaN(p[1]) && p[1].length < 5) {
                         bib = p[1];
@@ -283,31 +281,24 @@
             }
         }
 
-        function updateRider(id, f, v) { if(!isAdmin) return; let r=riders.find(x=>x.id==id); if(r){ r[f]=(f=='time'?parseFloat(v)||999:v); save(); } }
-
         function renderTable() {
             const tb=document.getElementById('riderTable'); tb.innerHTML='';
             riders.sort((a,b) => a.time - b.time);
             riders.forEach((r,i) => {
-                let row = isAdmin ? 
-                    `<td class="px-4 py-3">${i+1}</td>
-                     <td class="px-4 py-3"><input class="w-12 border rounded text-center p-1" value="${r.bib||''}" onchange="updateRider(${r.id},'bib',this.value)"></td>
-                     <td class="px-4 py-3 font-bold text-slate-700">${r.name}</td>
-                     <td class="px-4 py-3"><input class="w-16 border rounded text-center" value="${r.cat||''}" onchange="updateRider(${r.id},'cat',this.value)"></td>
-                     <td class="px-4 py-3"><input class="w-20 border rounded text-center" type="number" step="0.001" value="${r.time===999?'':r.time}" onchange="updateRider(${r.id},'time',this.value)"></td>
-                     <td class="px-4 py-3"><button onclick="riders=riders.filter(x=>x.id!=${r.id});save()" class="text-red-400 hover:text-red-600 font-bold">×</button></td>` :
-                    `<td class="px-4 py-3 text-slate-500">${i+1}</td>
-                     <td class="px-4 py-3 font-mono text-slate-500">${r.bib||'-'}</td>
-                     <td class="px-4 py-3 font-bold text-slate-800">${r.name}</td>
-                     <td class="px-4 py-3 text-slate-600 text-xs uppercase">${r.cat||'-'}</td>
-                     <td class="px-4 py-3 font-mono text-blue-600">${r.time===999?'-':r.time}</td>`;
-                tb.innerHTML += `<tr class="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition">${row}</tr>`;
+                tb.innerHTML += `
+                    <tr class="border-b border-slate-50 last:border-0">
+                        <td class="px-4 py-2 text-slate-500">${i+1}</td>
+                        <td class="px-4 py-2 font-bold text-slate-800">${r.name}</td>
+                        <td class="px-4 py-2 text-slate-600 text-xs uppercase">${r.cat||'-'}</td>
+                        <td class="px-4 py-2 font-mono text-blue-600">${r.time===999?'-':r.time}</td>
+                    </tr>`;
             });
         }
 
-        // --- NEW: CATEGORY-AWARE GENERATION ---
+        // --- CATEGORY-AWARE GENERATION ---
         function generateHeats() {
             const selectedCat = document.getElementById('categoryFilter').value;
+            
             let categoriesToRun = [];
             if(selectedCat === 'ALL') {
                 categoriesToRun = [...new Set(riders.map(r => r.cat))].sort();
@@ -362,10 +353,10 @@
                     if(idx !== -1) {
                         if(roundCounter < TOTAL_ROUNDS) {
                             if(idx <= 1) { cls='pos-top'; status='<span class="text-green-800 font-bold text-xs">⬆️ UP</span>'; }
-                            else if(idx >= h.riders.length-2) { cls='pos-bot'; status='<span class="text-red-800 font-bold text-xs">⬇️ DOWN</span>'; }
+                            else if(idx >= h.riders.length - 2) { cls='pos-bot'; status='<span class="text-red-800 font-bold text-xs">⬇️ DOWN</span>'; }
                             else { cls='pos-mid'; status='<span class="text-yellow-800 font-bold text-xs">↔️ STAY</span>'; }
                         } else {
-                            if(idx===0) cls='bg-yellow-100 border-l-4 border-yellow-400';
+                            if(idx === 0) cls = 'bg-yellow-100 border-l-4 border-yellow-400';
                         }
                     }
                     html+=`<div class="rider-select p-3 flex justify-between items-center ${cls}" onclick="res(${i},${r.id})">
