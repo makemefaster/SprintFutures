@@ -23,8 +23,7 @@
                 </div>
             </div>
             <div class="flex space-x-2">
-                <!-- Only shown for real events -->
-                <button id="liveBtn" onclick="openLive()" class="hidden bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700">📺 Spectator View</button>
+                <a href="live.html" target="_blank" class="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700">📺 Spectator View</a>
             </div>
         </div>
 
@@ -37,8 +36,8 @@
                 <!-- Import Box -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="font-bold text-slate-800 mb-2">1. Bulk Import Riders</h2>
-                    <p class="text-xs text-slate-500 mb-2">Paste CSV data: <strong>Name, Bib, Category</strong></p>
-                    <textarea id="importArea" class="w-full p-3 border border-slate-300 rounded-lg text-sm font-mono h-24 mb-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Harrie Lavreysen, 101, Elite&#10;Jason Kenny, 102, Elite"></textarea>
+                    <p class="text-xs text-slate-500 mb-2">Format: <strong>Name, Bib, Category, Time (Optional)</strong></p>
+                    <textarea id="importArea" class="w-full p-3 border border-slate-300 rounded-lg text-sm font-mono h-24 mb-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Harrie Lavreysen, 101, Elite, 9.45&#10;Jason Kenny, 102, Elite, 9.62"></textarea>
                     <button onclick="importNames()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold text-sm hover:bg-blue-700 transition">Import Riders</button>
                 </div>
 
@@ -155,19 +154,27 @@
             lines.forEach(l => {
                 if(!l.trim()) return;
                 const p = l.split(',').map(s => s.trim());
+                
                 let name = p[0];
                 let bib = '';
                 let cat = '';
+                let time = 999;
 
-                if(p.length > 1) {
-                    if(p[1].length < 5 && !isNaN(p[1])) {
+                // Smart Parse (Supports optional time at end)
+                if(p.length >= 2) {
+                    if(!isNaN(p[1]) && p[1].length < 5) {
+                        // Format: Name, Bib, Cat?, Time?
                         bib = p[1];
                         if(p[2]) cat = p[2];
+                        if(p[3]) time = parseFloat(p[3]) || 999;
                     } else {
+                        // Format: Name, Cat, Time?
                         cat = p[1];
+                        if(p[2]) time = parseFloat(p[2]) || 999;
                     }
                 }
-                riders.push({id:Date.now()+Math.random(), name, bib, cat, time:999});
+                
+                riders.push({id:Date.now()+Math.random(), name, bib, cat, time});
             });
             document.getElementById('importArea').value=''; 
             save();
@@ -225,5 +232,3 @@
     </script>
 </body>
 </html>
-
-
