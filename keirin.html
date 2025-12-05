@@ -38,7 +38,9 @@
     </nav>
 
     <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6">
-        <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
+        
+        <!-- FAIL-SAFE: Hidden by default -->
+        <div id="loginOverlay" class="hidden fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
             <h3 class="text-2xl font-bold mb-4">Event Access</h3>
             <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm w-full max-w-sm space-y-3">
                 <input id="loginId" placeholder="Event ID" class="w-full p-3 rounded bg-white text-slate-900 font-bold">
@@ -49,7 +51,6 @@
             </div>
         </div>
 
-        <!-- PHASE 1: QUALIFYING -->
         <div id="phase-qualifying" class="bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="font-bold text-slate-700">1. Setup Heats</h3>
@@ -74,7 +75,6 @@
             </div>
         </div>
 
-        <!-- PHASE 2: RACING -->
         <div id="phase-racing" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center sticky top-16 z-40">
                 <h3 class="font-bold text-slate-800">Race Card</h3>
@@ -90,7 +90,6 @@
             </div>
         </div>
 
-        <!-- PHASE 3: STANDINGS -->
         <div id="phase-standings" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-6 bg-slate-800 text-white text-center">
                 <h3 class="text-2xl font-black">🏁 Final Results</h3>
@@ -120,7 +119,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // EXPOSE FUNCTIONS
         window.doLogin = doLogin;
         window.wipeEvent = () => { if(confirm("RESET ALL DATA?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
         window.generateHeats = generateHeats;
@@ -170,13 +168,40 @@
 
         const p = new URLSearchParams(window.location.search);
         eventID = p.get('event');
-        if (p.get('auth') === 'admin') {
-            isAdmin=true; document.body.classList.add('admin-mode');
-        }
-        document.getElementById('eventTag').innerText = eventID ? eventID.toUpperCase() : "DEMO";
+        
+        if(eventID) {
+            document.getElementById('eventTag').innerText = eventID.toUpperCase();
+            
+            // --- FAIL-SAFE: HIDE IF ID EXISTS ---
+            document.getElementById('loginOverlay').classList.add('hidden');
 
-        // SYNC
-        if (eventID) {
+            if (p.get('auth') === 'admin') {
+                isAdmin=true; document.body.classList.add('admin-mode');
+            }
+            startSync();
+        } else {
+            // SHOW IF NO ID
+            document.getElementById('loginOverlay').classList.remove('hidden');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
+                e.preventDefault(); triggerAdmin();
+            }
+        });
+
+        function doLogin() {
+            const id = document.getElementById('loginId').value.trim().toLowerCase();
+            const pin = document.getElementById('loginPin').value.trim();
+            if(!id) return alert("Enter Event ID");
+            const url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            if(pin===PIN) url.searchParams.set('auth', 'admin');
+            window.location.href = url.toString();
+        }
+
+        function startSync() {
+            if(!db) return;
             onValue(ref(db, `events/${eventID}/riders`), (snap) => {
                 riders = snap.val() || [];
                 updateCats();
@@ -198,22 +223,6 @@
                     }
                 } else { renderTable(); showPhase('phase-qualifying'); }
             });
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a') {
-                e.preventDefault(); triggerAdmin();
-            }
-        });
-
-        function doLogin() {
-            const id = document.getElementById('loginId').value.trim().toLowerCase();
-            const pin = document.getElementById('loginPin').value.trim();
-            if(!id) return alert("Enter Event ID");
-            const url = new URL(window.location.href);
-            url.searchParams.set('event', id);
-            if(pin===PIN) url.searchParams.set('auth', 'admin');
-            window.location.href = url.toString();
         }
 
         function save(finished=false, early=false) {
@@ -251,7 +260,6 @@
             });
         }
 
-        // --- SMART CATEGORY HEATS ---
         function generateHeats() {
             const selectedCat = document.getElementById('categoryFilter').value;
             let categoriesToRun = [];
@@ -262,26 +270,17 @@
             }
 
             heats = [];
-            let heatChar = 65; // 'A'
+            let heatChar = 65; 
 
-            // Loop through each category to keep them separate
             categoriesToRun.forEach(cat => {
                 let pool = riders.filter(r => r.cat === cat);
-                if(pool.length < 4) return; // Skip small groups
+                if(pool.length < 4) return; 
                 pool.sort((a,b) => a.time - b.time);
 
                 while(pool.length > 0) {
                     let s = 6; 
-                    // Logic to avoid stragglers (e.g. if 7 riders, split 4+3 or keep 7?)
-                    // For now, strict 6. If <6 left, put them in last heat.
-                    if (pool.length < 6 && heats.length > 0 && heats[heats.length-1].catName === cat) {
-                         // This is tricky. Simplified: Just create smaller heat.
-                         s = pool.length; 
-                    }
-                    
                     let hr = [];
                     for(let i=0; i<s; i++) if(pool.length) hr.push(pool.shift());
-                    
                     heats.push({
                         name: `Heat ${String.fromCharCode(heatChar++)}`,
                         catName: cat,
@@ -313,19 +312,18 @@
                 h.riders.forEach(r => {
                     let idx = (h.res||[]).indexOf(r.id);
                     let cls = isAdmin ? 'hover:bg-slate-50 cursor-pointer transition' : '';
-                    let status = '';
+                    let status='';
                     if(idx !== -1) {
                         if(roundCounter < TOTAL_ROUNDS) {
-                             if(idx <= 1) { cls='pos-top'; status='<span class="text-green-800 font-bold text-xs">⬆️ UP</span>'; }
-                             else if(idx >= h.riders.length-2) { cls='pos-bot'; status='<span class="text-red-800 font-bold text-xs">⬇️ DOWN</span>'; }
-                             else { cls='pos-mid'; status='<span class="text-yellow-800 font-bold text-xs">↔️ STAY</span>'; }
+                            if(idx <= 1) { cls='pos-top'; status='<span class="text-green-800 font-bold text-xs">⬆️ UP</span>'; }
+                            else if(idx >= h.riders.length-2) { cls='pos-bot'; status='<span class="text-red-800 font-bold text-xs">⬇️ DOWN</span>'; }
+                            else { cls='pos-mid'; status='<span class="text-yellow-800 font-bold text-xs">↔️ STAY</span>'; }
                         } else {
-                            if(idx===0) cls='bg-yellow-100 border-l-4 border-yellow-400'; 
+                            if(idx===0) cls='bg-yellow-100 border-l-4 border-yellow-400';
                         }
                     }
-                    let bibBadge = r.bib ? `<span class="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-xs font-mono mr-2">#${r.bib}</span>` : '';
                     html+=`<div class="rider-select p-3 flex justify-between items-center ${cls}" onclick="res(${i},${r.id})">
-                            <div class="flex items-center">${bibBadge} <span class="text-slate-800 font-medium">${r.name}</span></div>
+                            <div class="flex items-center"><span class="font-medium text-slate-800">${r.name}</span></div>
                             <div class="flex items-center space-x-2">${idx!==-1 ? `<span class="bg-slate-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">${idx+1}</span>` : ''} ${status}</div>
                         </div>`;
                 });
@@ -348,7 +346,7 @@
             history.push({ round: roundCounter, timestamp: Date.now(), heats: JSON.parse(JSON.stringify(heats)) });
 
             if(roundCounter >= TOTAL_ROUNDS) { save(true); return; }
-            
+
             let next=heats.map(()=>[]);
             heats.forEach((h,i)=>{
                 h.res.forEach((rid, idx) => {
@@ -360,7 +358,8 @@
                     else { next[i].push(r); }
                 });
             });
-            heats=next.map((rs,i)=>({name:heats[i].name, catName: heats[i].catName, riders:rs, res:[]}));
+
+            heats = next.map((rs,i)=>({name:heats[i].name, catName: heats[i].catName, riders:rs, res:[]}));
             roundCounter++; save();
         }
 
