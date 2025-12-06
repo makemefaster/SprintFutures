@@ -1,5 +1,5 @@
-// WE CHANGED v2 TO v3 TO FORCE UPDATE
-const CACHE_NAME = "sprintfutures-v3"; 
+// BUMPED TO v4 TO FORCE UPDATE
+const CACHE_NAME = "sprintfutures-v4"; 
 
 const ASSETS_TO_CACHE = [
   "./",
@@ -30,6 +30,7 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[SW] Removing old cache", key);
             return caches.delete(key);
           }
         })
@@ -40,7 +41,9 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Always fetch database/live data from network
   if (event.request.url.includes("firebase")) return; 
+  
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
