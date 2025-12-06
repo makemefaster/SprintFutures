@@ -3,414 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sprint Ladder | SprintFutures</title>
+    <title>Live Results | SprintFutures</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#002366">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        body:not(.admin-mode) .admin-only { display: none !important; }
-        body:not(.admin-mode) .rider-card { pointer-events: none; }
         
-        /* Status Styles */
-        .status-dns { opacity: 0.5; text-decoration: line-through; background-color: #f3f4f6; }
-        .status-dsq { background-color: #fee2e2; border-left: 4px solid #ef4444; }
-        .status-win { background-color: #dcfce7; border-left: 4px solid #22c55e; }
+        /* Marquee Ticker Animation */
+        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; }
+        .marquee-content { display: inline-block; animation: marquee 40s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
-        /* Swap Mode */
-        .swap-source { border: 2px dashed #3b82f6; background-color: #eff6ff; }
+        /* Neon Glow Effect */
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(56, 189, 248, 0.3); }
+
+        /* Podium Gradient & Shimmer Effects */
+        .podium-gold {
+            background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%);
+            background-size: 200% 200%;
+            animation: shimmer 3s linear infinite;
+            color: #422a02; border: 1px solid #ffd700;
+        }
+        .podium-silver {
+            background: linear-gradient(135deg, #3d4349 0%, #aeb5bc 50%, #3d4349 100%);
+            background-size: 200% 200%;
+            animation: shimmer 4s linear infinite;
+            color: #1a202c; border: 1px solid #cbd5e0;
+        }
+        .podium-bronze {
+            background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%);
+            background-size: 200% 200%;
+            animation: shimmer 5s linear infinite;
+            color: #2d1a12; border: 1px solid #d69e2e;
+        }
+        @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
+
+        /* Scrollbar Hiding */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
 
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <a href="index.html" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-lg transition-colors text-slate-600">🏠</a>
-                <div class="flex flex-col no-select cursor-pointer" onclick="handleTitleTap()">
-                    <span class="text-lg font-bold text-slate-800 leading-tight">Sprint Ladder</span>
-                    <span id="eventTag" class="text-[0.6rem] bg-red-600 text-white px-1.5 rounded w-fit">LOADING...</span>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main class="flex-grow max-w-4xl mx-auto w-full p-4 space-y-6 relative">
-        
-        <!-- LOGIN & QUALIFYING SECTIONS (Unchanged) -->
-        <div id="loginOverlay" class="hidden fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center text-white p-4">
-            <h3 class="text-2xl font-bold mb-4">Event Access</h3>
-            <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm w-full max-w-sm space-y-3">
-                <input id="loginId" placeholder="Event ID" class="w-full p-3 rounded bg-white text-slate-900 font-bold">
-                <input id="loginPin" type="password" placeholder="Admin PIN" class="w-full p-3 rounded bg-white text-slate-900">
-                <button onclick="doLogin()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition">ENTER</button>
-            </div>
-        </div>
-
-        <div id="phase-qualifying" class="bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
-            <div class="p-4 border-b border-slate-100 bg-slate-50">
-                <h3 class="font-bold text-slate-700">1. Setup Heats</h3>
-            </div>
-            <div class="overflow-x-auto max-h-96 overflow-y-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
-                        <tr><th class="px-4 py-2">#</th><th class="px-4 py-2">Name</th><th class="px-4 py-2">Cat</th><th class="px-4 py-2">Time</th></tr>
-                    </thead>
-                    <tbody id="riderTable" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-            <div class="admin-only p-4 bg-slate-50 border-t border-slate-100 space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                    <div><span class="text-xs font-bold text-slate-600 block mb-1">Category:</span><select id="categoryFilter" class="w-full p-2 border rounded text-sm bg-white"></select></div>
-                    <div><span class="text-xs font-bold text-slate-600 block mb-1">Heat Size:</span><select id="heatSizeSelector" class="w-full p-2 border rounded text-sm bg-white"><option value="2">Match Sprint (2)</option><option value="3" selected>3-Up Sprint</option></select></div>
-                </div>
-                <button class="w-full bg-green-600 text-white font-bold py-3 rounded shadow-sm hover:bg-green-700 transition" onclick="generateHeats()">GENERATE HEATS &rarr;</button>
-            </div>
-        </div>
-
-        <!-- PHASE 2: RACING (Updated) -->
-        <div id="phase-racing" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center sticky top-16 z-30">
-                <div>
-                    <h3 class="font-bold text-slate-800">Race Card</h3>
-                    <div id="swapMsg" class="hidden text-xs text-blue-600 font-bold animate-pulse">Select rider to swap...</div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleEditMode()" class="admin-only bg-slate-100 text-slate-600 px-3 py-1 rounded text-xs font-bold border border-slate-300" id="editModeBtn">MODE: RACE</button>
-                    <span id="roundBadge" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Round 1</span>
-                </div>
-            </div>
-
-            <div id="heatsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    <!-- HEADER: Main Sponsor & Branding -->
+    <div class="bg-slate-900 border-b border-slate-700 p-4 shadow-xl z-20">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             
-            <div class="admin-only bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-                <button class="w-full bg-green-600 text-white font-bold py-3 rounded shadow-sm hover:bg-green-700 transition" onclick="finishRound()">CONFIRM & NEXT ROUND &rarr;</button>
-                <div class="flex gap-2">
-                    <button onclick="forcePhase('phase-qualifying')" class="flex-1 bg-slate-200 text-slate-600 text-xs font-bold py-2 rounded">Restart</button>
-                    <button onclick="endEventEarly()" class="flex-1 bg-red-100 text-red-700 text-xs font-bold py-2 rounded">End Event</button>
+            <!-- Left: Event Info -->
+            <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3">
+                    <a href="index.html" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-300 transition border border-slate-600">
+                        <span class="text-xl">🏠</span>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white italic uppercase leading-none">Live Feed</h1>
+                        <div id="eventTag" class="text-[0.65rem] inline-block bg-green-500 text-black px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1 shadow-[0_0_10px_rgba(34,197,94,0.6)]">Connecting...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right: PRIMARY SPONSOR (Neon) -->
+            <div class="w-full md:w-auto">
+                <div class="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-600 rounded-xl p-4 flex flex-col items-center md:items-end shadow-2xl relative overflow-hidden group">
+                    <!-- Shine Animation -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                    
+                    <p class="text-[0.6rem] text-sky-400 uppercase tracking-[0.3em] font-bold mb-1">Official Event Partner</p>
+                    <div class="font-black text-2xl md:text-4xl text-white tracking-tighter italic neon-text">
+                        FREQUENCY <span class="text-sky-400">CYCLEWORKS</span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-mono tracking-wide mt-1">High Performance Track Components</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="phase-standings" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-6 bg-slate-800 text-white text-center"><h3 class="text-2xl font-black">🏁 Final Results</h3></div>
-            <table class="w-full text-sm text-left"><thead class="text-xs text-slate-500 uppercase bg-slate-50"><tr><th class="px-4 py-3">Rank</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Time</th></tr></thead><tbody id="resultsBody" class="divide-y divide-slate-100"></tbody></table>
-            <div class="p-8 text-center bg-slate-50 border-t border-slate-100"><button class="admin-only bg-slate-200 text-slate-600 px-4 py-2 rounded text-sm hover:bg-slate-300 transition" onclick="wipeEvent()">Start New Event</button></div>
-        </div>
-    </main>
-
-    <!-- RIDER ACTION MODAL -->
-    <div id="riderModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden">
-            <div class="p-4 bg-slate-800 text-white font-bold flex justify-between">
-                <span id="modalRiderName">Rider Actions</span>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white">✕</button>
+    <!-- MAIN CONTENT: Results Grid -->
+    <div class="flex-grow p-4 overflow-hidden relative">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            
+            <!-- SPRINT COLUMN -->
+            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
+                <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md z-10">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">🚴</span>
+                        <h2 class="font-black text-xl italic uppercase tracking-wide">Sprint Ladder</h2>
+                    </div>
+                    <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
+                </div>
+                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
+                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
+                </div>
             </div>
-            <div class="p-2 grid grid-cols-1 gap-2">
-                <button onclick="setStatus('OK')" class="p-3 text-left hover:bg-green-50 rounded flex items-center gap-3"><span class="w-4 h-4 bg-green-500 rounded-full"></span> Active (OK)</button>
-                <button onclick="setStatus('DNS')" class="p-3 text-left hover:bg-slate-100 rounded flex items-center gap-3"><span class="w-4 h-4 bg-slate-300 rounded-full"></span> Injury / DNS</button>
-                <button onclick="setStatus('DSQ')" class="p-3 text-left hover:bg-red-50 rounded flex items-center gap-3"><span class="w-4 h-4 bg-red-500 rounded-full"></span> Disqualified (DSQ)</button>
-                <div class="border-t my-1"></div>
-                <button onclick="initSwap()" class="p-3 text-left hover:bg-blue-50 rounded font-bold text-blue-600">⇄ Swap Position</button>
+
+            <!-- KEIRIN COLUMN -->
+            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
+                <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md z-10">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">🏁</span>
+                        <h2 class="font-black text-xl italic uppercase tracking-wide">Keirin Ladder</h2>
+                    </div>
+                    <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
+                </div>
+                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
+                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FOOTER: Sponsor Ticker -->
+    <div class="bg-black border-t-4 border-orange-600 relative z-30">
+        <div class="absolute left-0 top-0 bottom-0 bg-orange-600 text-white font-black text-xs px-2 flex items-center z-10 shadow-lg uppercase tracking-widest writing-vertical-lr sm:writing-horizontal-tb">Sponsors</div>
+        <div class="marquee-container py-3 bg-gradient-to-b from-slate-900 to-black">
+            <div class="marquee-content flex items-center space-x-16 px-4">
+                <!-- Brand Loop -->
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
+                <!-- Duplicate for smooth loop -->
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-blue-500 mr-2 text-2xl">▲</span> SHIMANO</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
+                <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // --- EXPOSE ---
-        window.doLogin = doLogin;
-        window.wipeEvent = () => { if(confirm("Reset?")) { riders=[]; heats=[]; history=[]; roundCounter=1; save(false); } };
-        window.generateHeats = generateHeats;
-        window.handleClick = handleClick; // Unified handler
-        window.finishRound = finishRound;
-        window.endEventEarly = () => save(true, true);
-        window.forcePhase = (p) => { window.manualPhase=true; showPhase(p); if(p==='phase-qualifying') renderTable(); };
-        window.toggleEditMode = toggleEditMode;
-        window.closeModal = () => document.getElementById('riderModal').classList.add('hidden');
-        window.setStatus = setStatus;
-        window.initSwap = initSwap;
-        window.updateHeatTime = updateHeatTime;
-        window.handleTitleTap = () => { tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(()=>tapCount=0,1000); if(tapCount===3){document.getElementById('loginOverlay').classList.remove('hidden');} };
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+            authDomain: "sprintfutures.firebaseapp.com",
+            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com",
+            projectId: "sprintfutures",
+            storageBucket: "sprintfutures.firebasestorage.app",
+            messagingSenderId: "535060943616",
+            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+            measurementId: "G-9XFQV3PLEV"
+        };
 
-        // --- CONFIG ---
-        const firebaseConfig = { apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc", authDomain: "sprintfutures.firebaseapp.com", databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com", projectId: "sprintfutures", storageBucket: "sprintfutures.firebasestorage.app", messagingSenderId: "535060943616", appId: "1:535060943616:web:d15fc5225538eaeb3459e5", measurementId: "G-9XFQV3PLEV" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- STATE ---
-        let riders=[], heats=[], history=[], roundCounter=1, cats=new Set(), eventID="", isAdmin=false;
-        const PIN="1234", TOTAL_ROUNDS=3;
-        let editMode = false; // Toggle between Race and Edit
-        let selectedRider = null; // For Modal
-        let swapSource = null; // For Swapping
-        let tapCount=0, tapTimer=null;
+        const params = new URLSearchParams(window.location.search);
+        const eventID = params.get('event');
 
-        // --- INIT ---
-        const p = new URLSearchParams(window.location.search);
-        eventID = p.get('event');
-        if(eventID) {
-            document.getElementById('eventTag').innerText = eventID.toUpperCase();
-            document.getElementById('loginOverlay').classList.add('hidden');
-            if (p.get('auth')==='admin') { isAdmin=true; document.body.classList.add('admin-mode'); }
-            startSync();
-        } else { document.getElementById('loginOverlay').classList.remove('hidden'); }
-
-        function doLogin() {
-            const id = document.getElementById('loginId').value.trim().toLowerCase();
-            const pin = document.getElementById('loginPin').value.trim();
-            if(!id) return;
-            const url = new URL(window.location.href);
-            url.searchParams.set('event', id);
-            if(pin===PIN) url.searchParams.set('auth', 'admin');
-            window.location.href = url.toString();
+        // --- AUTO SCROLL LOGIC ---
+        let lastUpdate = Date.now();
+        let scrollInterval = null;
+        
+        function resetScrollTimer() {
+            lastUpdate = Date.now();
+            stopScrolling(); 
         }
+        
+        // Screensaver Mode Trigger (60s)
+        setInterval(() => {
+            if (Date.now() - lastUpdate > 60000) { 
+                startScrolling();
+            }
+        }, 1000);
 
-        function startSync() {
-            onValue(ref(db, `events/${eventID}/riders`), s => { riders = s.val() || []; updateCats(); if(!window.manualPhase && heats.length===0) renderTable(); });
-            onValue(ref(db, `events/${eventID}/sprint`), s => {
-                const d = s.val();
-                if (d) {
-                    heats = (d.heats||[]).map(h=>({ ...h, riders: h.riders||[], res: h.res||[] }));
-                    history = d.history||[]; roundCounter = d.roundCounter||1;
-                    if(!window.manualPhase) {
-                        if(d.isFinished) { showPhase('phase-standings'); renderResults(d.earlyEnd); }
-                        else if(heats.length>0) { showPhase('phase-racing'); renderHeats(); }
-                        else { showPhase('phase-qualifying'); renderTable(); }
+        function startScrolling() {
+            if (scrollInterval) return; 
+            const containers = [document.getElementById('sprintContainer'), document.getElementById('keirinContainer')];
+            
+            scrollInterval = setInterval(() => {
+                containers.forEach(el => {
+                    if(el && el.scrollHeight > el.clientHeight) {
+                        el.scrollTop += 1; // 1px per tick
+                        // Reset when bottom reached
+                        if(el.scrollTop + el.clientHeight >= el.scrollHeight) {
+                            setTimeout(() => { el.scrollTop = 0; }, 2000);
+                        }
                     }
-                } else { showPhase('phase-qualifying'); renderTable(); }
-            });
-        }
-
-        function save(finished=false, early=false) {
-            if(!isAdmin) return;
-            set(ref(db, `events/${eventID}/sprint`), { heats, history, roundCounter, isFinished: finished, earlyEnd: early, lastUpdate: Date.now() });
-        }
-
-        // --- NEW EDIT LOGIC ---
-        function toggleEditMode() {
-            editMode = !editMode;
-            const btn = document.getElementById('editModeBtn');
-            btn.innerText = editMode ? "MODE: EDIT" : "MODE: RACE";
-            btn.className = editMode ? "admin-only bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold" : "admin-only bg-slate-100 text-slate-600 px-3 py-1 rounded text-xs font-bold border border-slate-300";
-            
-            // Cancel any active swap
-            swapSource = null;
-            document.getElementById('swapMsg').classList.add('hidden');
-            renderHeats();
-        }
-
-        function handleClick(heatIdx, riderId) {
-            if(!isAdmin) return;
-
-            // 1. SWAP MODE ACTIVE?
-            if(swapSource) {
-                performSwap(heatIdx, riderId);
-                return;
-            }
-
-            // 2. EDIT MODE? Show Modal
-            if(editMode) {
-                selectedRider = { heatIdx, riderId };
-                let r = riders.find(x => x.id == riderId);
-                document.getElementById('modalRiderName').innerText = r ? r.name : "Rider Options";
-                document.getElementById('riderModal').classList.remove('hidden');
-                return;
-            }
-
-            // 3. RACE MODE (Default): Toggle Win/Loss
-            let h = heats[heatIdx];
-            if(!h.res) h.res=[];
-            // Check if rider is DNS or DSQ (Cannot win)
-            let rData = h.riders.find(r => r.id == riderId);
-            if(rData && (rData.status === 'DNS' || rData.status === 'DSQ')) return alert("Rider is " + rData.status);
-
-            h.res.includes(riderId) ? h.res = h.res.filter(x => x != riderId) : h.res.push(riderId);
-            save();
-        }
-
-        function setStatus(status) {
-            if(!selectedRider) return;
-            let h = heats[selectedRider.heatIdx];
-            let r = h.riders.find(x => x.id == selectedRider.riderId);
-            if(r) {
-                r.status = status; // 'OK', 'DNS', 'DSQ'
-                // If DNS/DSQ, remove from results if present
-                if(status !== 'OK') h.res = h.res.filter(x => x != r.id);
-            }
-            closeModal();
-            save();
-        }
-
-        function initSwap() {
-            closeModal();
-            if(!selectedRider) return;
-            swapSource = selectedRider;
-            document.getElementById('swapMsg').classList.remove('hidden');
-            renderHeats(); // Re-render to show visual cue
-        }
-
-        function performSwap(targetHeatIdx, targetRiderId) {
-            // Find Source and Target
-            let sourceHeat = heats[swapSource.heatIdx];
-            let targetHeat = heats[targetHeatIdx];
-            
-            let sourceRiderIdx = sourceHeat.riders.findIndex(r => r.id == swapSource.riderId);
-            let targetRiderIdx = targetHeat.riders.findIndex(r => r.id == targetRiderId);
-
-            if(sourceRiderIdx === -1 || targetRiderIdx === -1) return;
-
-            // Swap objects in the array
-            let temp = sourceHeat.riders[sourceRiderIdx];
-            sourceHeat.riders[sourceRiderIdx] = targetHeat.riders[targetRiderIdx];
-            targetHeat.riders[targetRiderIdx] = temp;
-
-            // Clear results for safety
-            sourceHeat.res = [];
-            targetHeat.res = [];
-
-            swapSource = null;
-            document.getElementById('swapMsg').classList.add('hidden');
-            save();
-        }
-
-        function updateHeatTime(heatIdx, timeVal) {
-            heats[heatIdx].startTime = timeVal;
-            save();
-        }
-
-        // --- RENDERING ---
-        function renderHeats() {
-            const c = document.getElementById('heatsContainer'); c.innerHTML='';
-            document.getElementById('roundBadge').innerText = "Round "+roundCounter;
-            
-            heats.forEach((h,i) => {
-                let catLabel = h.catName ? `<span class="bg-black/10 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2 text-slate-500">${h.catName}</span>` : '';
-                let timeInput = isAdmin ? `<input type="time" class="border rounded p-1 text-xs ml-auto" value="${h.startTime||''}" onchange="updateHeatTime(${i}, this.value)">` : (h.startTime ? `<span class="text-xs font-mono ml-auto bg-slate-100 px-2 py-1 rounded">⏰ ${h.startTime}</span>` : '');
-
-                let html=`<div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                        <div class="bg-slate-50 p-3 flex items-center border-b border-slate-100">
-                            <span class="font-bold text-slate-700">${h.name}</span> ${catLabel} ${timeInput}
-                        </div>
-                        <div class="divide-y divide-slate-100">`;
-                
-                h.riders.forEach(r => {
-                    let idx = (h.res||[]).indexOf(r.id);
-                    let statusClass = '';
-                    let statusBadge = '';
-                    let clickAction = `handleClick(${i}, ${r.id})`;
-
-                    // Visual State
-                    if(r.status === 'DNS') { statusClass = 'status-dns'; statusBadge = '<span class="text-[0.6rem] bg-slate-200 px-1 rounded text-slate-500">DNS</span>'; }
-                    else if(r.status === 'DSQ') { statusClass = 'status-dsq'; statusBadge = '<span class="text-[0.6rem] bg-red-100 text-red-600 px-1 rounded font-bold">DSQ</span>'; }
-                    else if(idx !== -1) {
-                        if(roundCounter < TOTAL_ROUNDS) {
-                            if(idx===0) { statusClass='status-win'; statusBadge='<span class="text-green-600 font-bold text-xs">1st (UP)</span>'; }
-                            else if(idx>=h.riders.length-2) { statusBadge='<span class="text-red-600 text-xs">Down</span>'; }
-                        } else { if(idx===0) statusClass='status-win'; }
-                    }
-
-                    // Highlight source if swapping
-                    if(swapSource && swapSource.riderId == r.id) statusClass = 'swap-source';
-
-                    // Edit Mode Indicator
-                    let editIcon = (editMode && isAdmin) ? `<span class="text-slate-300 text-xs mr-2">⚙️</span>` : '';
-
-                    html+=`<div class="rider-card p-3 flex justify-between items-center hover:bg-slate-50 cursor-pointer transition ${statusClass}" onclick="${clickAction}">
-                            <div class="flex items-center">
-                                ${editIcon}
-                                <span class="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-xs font-mono mr-2 w-8 text-center">#${r.bib||'-'}</span>
-                                <div>
-                                    <div class="font-medium text-slate-800 leading-tight">${r.name}</div>
-                                    <div class="text-[0.6rem] text-slate-400 font-mono">Q: ${r.time}s</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-2">${statusBadge}</div>
-                        </div>`;
                 });
-                c.innerHTML+=html+'</div></div>';
-            });
+            }, 50); // Speed
         }
 
-        function generateHeats() {
-            // (Code same as previous version - Smart Grouping)
-            const selectedCat = document.getElementById('categoryFilter').value;
-            const sizePref = parseInt(document.getElementById('heatSizeSelector').value);
-            let categoriesToRun = (selectedCat === 'ALL') ? [...new Set(riders.map(r => r.cat))].sort() : [selectedCat];
-            heats = []; let heatChar = 65;
+        function stopScrolling() {
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+                // Snap to top on update
+                document.getElementById('sprintContainer').scrollTop = 0;
+                document.getElementById('keirinContainer').scrollTop = 0;
+            }
+        }
 
-            categoriesToRun.forEach(cat => {
-                let pool = riders.filter(r => r.cat === cat);
-                if(pool.length < 2) return; 
-                pool.sort((a,b)=>a.time-b.time); 
-                while(pool.length > 0) {
-                    let s = sizePref; 
-                    if(sizePref === 3 && pool.length === 4) s = 2; 
-                    if(pool.length === 2) s = 2;
-                    if(pool.length === 1) { if(heats.length > 0) heats[heats.length-1].riders.push(pool.shift()); continue; }
-                    let hr=[]; for(let i=0; i<s; i++) if(pool.length) hr.push(pool.shift());
-                    heats.push({ name: `Heat ${String.fromCharCode(heatChar++)}`, catName: cat, riders: hr, res: [] });
+        if(eventID) {
+            document.getElementById('eventTag').innerText = "LIVE: " + eventID.toUpperCase();
+            document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-red-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1 animate-pulse";
+            startListener('sprint', 'sprintContainer', 'sprintRound');
+            startListener('keirin', 'keirinContainer', 'keirinRound');
+        } else {
+            document.getElementById('eventTag').innerText = "NO SIGNAL";
+            document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-slate-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1";
+        }
+
+        function startListener(type, containerId, badgeId) {
+            onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
+                resetScrollTimer();
+                const data = snap.val();
+                const box = document.getElementById(containerId);
+                const badge = document.getElementById(badgeId);
+                box.innerHTML = '';
+
+                if(!data || !data.heats) {
+                    box.innerHTML = `<div class="text-center text-slate-500 py-10 italic">Waiting for Race Control...</div>`;
+                    return;
+                }
+
+                badge.innerText = data.isFinished ? "FINAL STANDINGS" : "Round " + (data.roundCounter || 1);
+                if(data.isFinished) badge.className = "text-xs bg-yellow-500 text-black px-3 py-1 rounded-full font-bold border border-yellow-300 shadow-lg shadow-yellow-500/20";
+
+                // --- 1. ACTIVE ROUND / FINALS ---
+                if(data.isFinished) {
+                    box.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-xl border border-yellow-500/30 mb-4 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                        <div class="text-center font-black text-yellow-400 mb-3 tracking-widest text-lg">OFFICIAL RESULTS</div>
+                        ${renderFinals(data.heats)}
+                    </div>`;
+                } else {
+                    box.innerHTML += `<div class="text-xs uppercase font-bold text-sky-400 mb-3 flex items-center"><span class="w-2 h-2 bg-sky-400 rounded-full mr-2 animate-ping"></span> On Track Now</div>`;
+                    data.heats.forEach(h => { box.innerHTML += renderHeatCard(h); });
+                }
+
+                // --- 2. HISTORY (Reverse Chronological) ---
+                if(data.history && data.history.length > 0) {
+                    // Copy and reverse to show Round 2, then Round 1
+                    [...data.history].reverse().forEach((hist, i) => {
+                        let label = i === 0 ? "Most Recent" : "History";
+                        let labelClass = i === 0 ? "bg-slate-600 text-white" : "bg-slate-800 text-slate-500";
+                        
+                        box.innerHTML += `<div class="mt-8 pt-6 border-t-2 border-slate-700/50">
+                            <div class="text-xs uppercase font-bold text-slate-500 mb-3 flex items-center justify-between">
+                                <span>Round ${hist.round} Results</span>
+                                <span class="text-[0.6rem] ${labelClass} px-2 py-0.5 rounded border border-slate-700">${label}</span>
+                            </div>
+                            <div class="opacity-80 hover:opacity-100 transition duration-500">
+                                ${hist.heats.map(h => renderHeatCard(h, true)).join('')}
+                            </div>
+                        </div>`;
+                    });
                 }
             });
-            if(heats.length === 0) return alert("Not enough riders.");
-            roundCounter = 1; history = []; window.manualPhase = false; save();
         }
 
-        function finishRound() {
-            // Skip DNS/DSQ riders in validation check
-            for(let h of heats) {
-                const activeRiders = h.riders.filter(r => r.status !== 'DNS' && r.status !== 'DSQ').length;
-                if((h.res||[]).length !== activeRiders) return alert("Please finish all active heats.");
-            }
+        function renderHeatCard(h, isHistory=false) {
+            let borderClass = isHistory ? 'border-slate-700' : 'border-slate-600 hover:border-slate-500';
+            let bgClass = isHistory ? 'bg-slate-800' : 'bg-slate-800 shadow-lg';
+            let catLabel = h.catName ? `<span class="bg-black/40 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2 text-slate-300 border border-white/10">${h.catName}</span>` : '';
             
-            if(!history) history = [];
-            history.push({ round: roundCounter, timestamp: Date.now(), heats: JSON.parse(JSON.stringify(heats)) });
+            let timeDisplay = h.startTime ? `<span class="text-green-400 text-xs font-mono ml-auto flex items-center"><span class="mr-1">⏰</span>${h.startTime}</span>` : '';
 
-            if(roundCounter >= TOTAL_ROUNDS) { save(true); return; }
+            let html = `<div class="${bgClass} rounded-xl border ${borderClass} overflow-hidden mb-3 transition-all duration-300">
+                <div class="bg-black/30 p-2 text-xs font-bold text-slate-400 flex justify-between items-center backdrop-blur-sm">
+                    <div class="flex items-center"><span class="text-white">${h.name}</span> ${catLabel}</div>
+                    <div class="flex items-center gap-2">${timeDisplay} <span>${h.riders ? h.riders.length : 0} Riders</span></div>
+                </div>
+                <div class="p-3 space-y-2">`;
             
-            let next=heats.map(()=>[]);
-            heats.forEach((h,i)=>{
-                // Logic to handle DNS/DSQ: They drop to the bottom automatically.
-                // Only look at actual finishers in h.res
-                let winners = h.res.slice(0, 1); // Top 1
-                let losers = h.res.slice(-1); // Bottom 1 (of those who rode)
+            if(h.riders) {
+                h.riders.forEach(r => {
+                    let idx = (h.res||[]).indexOf(r.id);
+                    let status = idx !== -1 ? `<span class="text-green-400 font-bold text-xs ml-2 bg-green-900/30 px-2 py-0.5 rounded border border-green-500/30">${idx+1}</span>` : '';
+                    
+                    let dim = isHistory ? "text-slate-400" : "text-slate-200";
+                    let bibDisplay = `#${r.bib||'-'}`;
 
-                // Winner logic
-                let wID = winners[0];
-                let w = riders.find(x=>x.id==wID);
-                if(w) { i===0 ? next[0].push(w) : next[i-1].push(w); }
+                    // Status overrides
+                    if (r.status === 'DNS') {
+                        dim = "text-slate-600 line-through decoration-slate-500";
+                        status = '<span class="text-[0.6rem] bg-slate-700 text-slate-400 px-1 rounded">DNS</span>';
+                    } else if (r.status === 'DSQ') {
+                        dim = "text-red-400";
+                        status = '<span class="text-[0.6rem] bg-red-900 text-red-300 px-1 rounded border border-red-700">DSQ</span>';
+                    } else if (idx===0 && isHistory) {
+                        dim = "text-green-400 font-bold"; // Winner highlight
+                    }
 
-                // Loser logic
-                let lID = losers[0];
-                let l = riders.find(x=>x.id==lID);
-                if(l) { i===heats.length-1 ? next[i].push(l) : next[i+1].push(l); }
-
-                // Middle Logic
-                h.res.slice(1, -1).forEach(midID => {
-                    let m = riders.find(x=>x.id==midID);
-                    if(m) next[i].push(m);
+                    html += `<div class="flex items-center justify-between text-sm group">
+                        <div class="flex items-center">
+                            <span class="w-8 text-slate-500 text-xs font-mono group-hover:text-slate-300 transition">${bibDisplay}</span>
+                            <span class="font-medium ${dim}">${r.name}</span>
+                            <span class="text-[0.6rem] text-slate-600 ml-2 font-mono">${r.time ? 'Q:'+r.time : ''}</span>
+                        </div>
+                        ${status}
+                    </div>`;
                 });
-            });
-            
-            heats=next.map((rs,i)=>({name:heats[i].name, catName: heats[i].catName, riders:rs, res:[]}));
-            roundCounter++; save();
+            }
+            return html + `</div></div>`;
         }
 
-        function renderTable() { /* Same as before */
-            const tb=document.getElementById('riderTable'); tb.innerHTML=''; riders.sort((a,b) => a.time - b.time);
-            riders.forEach((r,i) => {
-                tb.innerHTML += `<tr class="border-b border-slate-50"><td class="px-4 py-2">${i+1}</td><td class="px-4 py-2 font-bold">${r.name}</td><td class="px-4 py-2 text-xs uppercase">${r.cat||'-'}</td><td class="px-4 py-2 font-mono text-blue-600">${r.time}</td></tr>`;
+        function renderFinals(heats) {
+            // Logic to extract riders from heats and sort them
+            let list = [];
+            heats.forEach((h, heatIdx) => {
+               (h.res||[]).forEach((rid, placeIdx) => {
+                   // FIX: Look inside heat riders array (self-contained)
+                   let r = (h.riders || []).find(x => x.id == rid);
+                   if(r) list.push({ ...r, heatIdx, placeIdx, heatName: h.name });
+               });
             });
+            list.sort((a,b) => {
+                if(a.heatIdx !== b.heatIdx) return a.heatIdx - b.heatIdx;
+                return a.placeIdx - b.placeIdx;
+            });
+
+            let html = '';
+            list.forEach((r, i) => {
+                let podiumClass = "";
+                let badge = "";
+
+                if (i === 0) {
+                    podiumClass = "podium-gold shadow-lg transform scale-[1.02] mb-2 rounded-lg font-black";
+                    badge = "🏆 1ST";
+                } else if (i === 1) {
+                    podiumClass = "podium-silver mb-1 rounded-lg font-bold";
+                    badge = "🥈 2ND";
+                } else if (i === 2) {
+                    podiumClass = "podium-bronze mb-1 rounded-lg font-bold";
+                    badge = "🥉 3RD";
+                } else {
+                    podiumClass = "text-slate-400 border-b border-white/5 hover:bg-white/5";
+                    badge = `<span class="text-slate-600 text-xs font-mono">${i+1}.</span>`;
+                }
+
+                html += `<div class="flex justify-between items-center text-sm ${podiumClass} py-3 px-4 transition-all">
+                   <div class="flex items-center gap-3">
+                       <span class="w-12">${badge}</span>
+                       <span class="uppercase tracking-wide">${r.name}</span>
+                   </div>
+                   <div class="flex items-center gap-2">
+                       <span class="text-[0.6rem] text-slate-500 font-mono">${r.time ? 'Q:'+r.time : ''}</span>
+                       <span class="text-[0.65rem] opacity-60 font-mono uppercase tracking-wide">${r.heatName}</span>
+                   </div>
+               </div>`;
+            });
+            return html;
         }
-        // (UpdateCats, ShowPhase, etc remain the same)
-        function showPhase(id) { ['phase-qualifying', 'phase-racing', 'phase-standings'].forEach(p=>document.getElementById(p).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
-        function updateCats() { cats.clear(); riders.forEach(r=>{if(r.cat)cats.add(r.cat)}); const s=document.getElementById('categoryFilter'); if(s.options.length===0 || s.options.length-1 !== cats.size) { s.innerHTML='<option value="ALL">All Categories</option>'; Array.from(cats).sort().forEach(c=>s.innerHTML+=`<option value="${c}">${c}</option>`); } }
-        function renderResults() { const tb=document.getElementById('resultsBody'); tb.innerHTML=''; let allResults=[]; heats.forEach((h,heatIdx)=>{ (h.res||[]).forEach((rid,placeIdx)=>{ let r=riders.find(x=>x.id==rid); allResults.push({...r,heatIdx,placeIdx}); }); h.riders.filter(r=>!(h.res||[]).includes(r.id)).forEach(r=>allResults.push({...r,heatIdx,placeIdx:99})); }); allResults.sort((a,b)=>{if(a.heatIdx!==b.heatIdx)return a.heatIdx-b.heatIdx; return a.placeIdx-b.placeIdx;}); allResults.forEach((r,i)=>{ tb.innerHTML+=`<tr class="border-b border-slate-50"><td class="px-4 py-3 font-bold">${i+1}</td><td class="px-4 py-3">${r.name}</td><td class="px-4 py-3 font-mono">${r.time}</td></tr>`; }); }
     </script>
 </body>
 </html>
