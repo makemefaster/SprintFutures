@@ -1,9 +1,10 @@
-// BUMPED TO v4 TO FORCE UPDATE
-const CACHE_NAME = "sprintfutures-v4"; 
+// BUMPED TO v5 (New staff.html file)
+const CACHE_NAME = "sprintfutures-v5"; 
 
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
+  "./staff.html", 
   "./admin.html",
   "./sprint.html",
   "./keirin.html",
@@ -16,7 +17,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting(); // FORCE ACTIVATION
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -30,20 +31,17 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log("[SW] Removing old cache", key);
             return caches.delete(key);
           }
         })
       );
     })
   );
-  self.clients.claim(); // TAKE CONTROL IMMEDIATELY
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  // Always fetch database/live data from network
   if (event.request.url.includes("firebase")) return; 
-  
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
