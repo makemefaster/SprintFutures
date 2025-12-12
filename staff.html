@@ -66,9 +66,25 @@
     </div>
 
     <script type="module">
-        import { db } from './firebase-config.js';
-        import { ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
+        // EMBEDDED CONFIG TO PREVENT 404 ERRORS
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
+            authDomain: "sprintfutures.firebaseapp.com",
+            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com",
+            projectId: "sprintfutures",
+            storageBucket: "sprintfutures.firebasestorage.app",
+            messagingSenderId: "535060943616",
+            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
+            measurementId: "G-9XFQV3PLEV"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // ATTACH FUNCTIONS TO WINDOW
         window.togglePinVisibility = function() {
             const input = document.getElementById('adminPin');
             const icon = document.getElementById('eyeIcon');
@@ -91,7 +107,7 @@
             
             if(!id || !pin) return alert("Enter ID and PIN");
 
-            // UI Loading State
+            // UI State
             btn.disabled = true;
             btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             btn.classList.add('opacity-75', 'cursor-wait');
@@ -105,20 +121,20 @@
             }, 8000);
 
             try {
-                // Fetch Meta Data for Event (Cycling Path)
+                // FETCH DATA
                 const snapshot = await get(ref(db, `events/${id}/meta`));
                 clearTimeout(timeout);
                 
                 const meta = snapshot.val();
 
                 if (!meta) {
-                    status.innerText = "Event not found in SprintFutures.";
+                    status.innerText = "Event not found.";
                     status.className = "text-center text-xs text-red-500 mt-2 font-bold";
                     resetBtn();
                     return;
                 }
 
-                // Check Credentials (Case Insensitive)
+                // CHECK PINS (CASE INSENSITIVE)
                 const enteredPin = pin.toLowerCase();
                 const storedAdmin = String(meta.adminPin).toLowerCase();
                 const storedUmpire = String(meta.umpirePin).toLowerCase();
@@ -127,6 +143,7 @@
                     status.innerText = "Success! Redirecting...";
                     status.className = "text-center text-xs text-green-600 mt-2 font-bold";
                     
+                    // LOG DATA
                     if (email) {
                         push(ref(db, 'staff_directory'), {
                             email: email, 
@@ -139,7 +156,6 @@
 
                     setTimeout(() => {
                         const role = storedAdmin === enteredPin ? 'admin' : 'umpire';
-                        // IMPORTANT: Redirects to admin.html in the same folder
                         window.location.href = `admin.html?event=${id}&auth=${role}`;
                     }, 500);
 
