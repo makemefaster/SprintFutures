@@ -1,6 +1,4 @@
-// BUMPED TO v5 (New staff.html file)
-const CACHE_NAME = "sprintfutures-v5"; 
-
+const CACHE_NAME = "sprintfutures-v8"; // BUMPED TO FORCE UPDATE
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -9,7 +7,7 @@ const ASSETS_TO_CACHE = [
   "./sprint.html",
   "./keirin.html",
   "./live.html",
-  "./manifest.json",
+  "./firebase-config.js", // Ensure this is cached
   "https://cdn.tailwindcss.com",
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap",
   "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js",
