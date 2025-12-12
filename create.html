@@ -8,144 +8,91 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <!-- 1. AUTH SCREEN -->
     <div id="auth-box" class="w-full max-w-sm text-center">
-        <h1 class="text-2xl font-bold mb-4">Master Control</h1>
+        <h1 class="text-2xl font-bold mb-4">SprintFutures Master</h1>
         <input type="password" id="masterKey" placeholder="Master Password" class="w-full p-3 rounded text-slate-900 mb-4">
         <button onclick="checkMaster()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold">Unlock</button>
     </div>
 
-    <!-- 2. DASHBOARD (Hidden until unlocked) -->
-    <div id="create-box" class="hidden w-full max-w-md bg-white text-slate-900 rounded-xl p-8 shadow-2xl space-y-8">
+    <div id="create-box" class="hidden w-full max-w-md bg-white text-slate-900 rounded-xl p-8 shadow-2xl space-y-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Create Cycling Event</h2>
+            <p class="text-sm text-slate-500">Initialize Sprint/Keirin database.</p>
+        </div>
+
+        <div class="space-y-4">
+            <input type="text" id="createId" placeholder="Event ID (e.g. NATS24)" class="w-full p-3 bg-slate-100 border-2 border-slate-200 rounded-lg font-bold uppercase focus:border-indigo-500 outline-none">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-blue-600 mb-1">Admin PIN</label>
+                    <input type="text" id="adminPin" placeholder="9999" class="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-lg font-bold outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-orange-600 mb-1">Umpire PIN</label>
+                    <input type="text" id="umpirePin" placeholder="1234" class="w-full p-3 bg-orange-50 border-2 border-orange-100 rounded-lg font-bold outline-none">
+                </div>
+            </div>
+
+            <button onclick="doCreate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition shadow-md">
+                🚀 Launch Event
+            </button>
+        </div>
         
-        <!-- SECTION A: CREATE -->
-        <div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Create New Event</h2>
-            <p class="text-sm text-slate-500 mb-4">This will initialize a new database node.</p>
-            
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Event ID</label>
-                    <input type="text" id="createId" placeholder="e.g. nats24" class="w-full p-3 bg-slate-100 border rounded-lg font-bold uppercase">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Set PIN</label>
-                    <input type="text" id="createPin" placeholder="e.g. 1234" class="w-full p-3 bg-slate-100 border rounded-lg font-bold">
-                </div>
-                <button onclick="doCreate()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition shadow-md">
-                    🚀 Launch Event
-                </button>
-            </div>
-        </div>
-
-        <hr class="border-slate-200">
-
-        <!-- SECTION B: LOOKUP (New Feature) -->
-        <div>
-            <h2 class="text-lg font-bold text-slate-800 mb-3">Recover Event PIN</h2>
+        <div class="border-t pt-4">
+            <h3 class="text-xs font-bold text-slate-400 uppercase mb-2">Check Existing</h3>
             <div class="flex gap-2">
-                <input type="text" id="checkId" placeholder="Event ID" class="flex-grow p-3 bg-slate-50 border rounded-lg font-bold uppercase text-sm">
-                <button onclick="checkEvent()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 rounded-lg text-sm transition">Check</button>
-            </div>
-            
-            <!-- Result Box -->
-            <div id="eventResult" class="mt-4 hidden p-4 bg-slate-100 rounded-lg border border-slate-200 text-sm animate-pulse">
-                Searching...
+                <input type="text" id="checkId" placeholder="Event ID" class="flex-grow p-2 border rounded text-sm">
+                <button onclick="checkEvent()" class="bg-slate-200 px-4 py-2 rounded text-sm font-bold">Check</button>
             </div>
         </div>
-
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+        import { db } from './firebase-config.js';
+        import { ref, get, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // --- YOUR SECRET PASSWORD ---
         const MASTER_KEY = "Frequency123"; 
 
         window.checkMaster = function() {
-            const input = document.getElementById('masterKey').value;
-            if(input === MASTER_KEY) {
+            if(document.getElementById('masterKey').value === MASTER_KEY) {
                 document.getElementById('auth-box').classList.add('hidden');
                 document.getElementById('create-box').classList.remove('hidden');
-            } else {
-                alert("Access Denied");
-            }
+            } else { alert("Access Denied"); }
         };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-            authDomain: "sprintfutures.firebaseapp.com",
-            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com",
-            projectId: "sprintfutures",
-            storageBucket: "sprintfutures.firebasestorage.app",
-            messagingSenderId: "535060943616",
-            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-            measurementId: "G-9XFQV3PLEV"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // --- CREATE FUNCTION ---
         window.doCreate = async function() {
             const id = document.getElementById('createId').value.trim().toLowerCase();
-            const pin = document.getElementById('createPin').value.trim();
+            const aPin = document.getElementById('adminPin').value.trim();
+            const uPin = document.getElementById('umpirePin').value.trim();
             
-            if(!id || !pin) return alert("Enter ID and PIN");
-            if(id.includes('demo')) return alert("Reserved keyword: 'demo'");
+            if(!id || !aPin || !uPin) return alert("All fields required");
 
+            // CHECK 'events/' PATH (Cycling)
             const snapshot = await get(ref(db, `events/${id}/meta`));
-            if(snapshot.exists()) {
-                return alert("⚠️ Event ID already exists! Use the lookup tool below to check its PIN.");
-            }
+            if(snapshot.exists()) return alert("Event ID already exists in SprintFutures.");
 
+            // SAVE TO 'events/' PATH
             await set(ref(db, `events/${id}/meta`), {
-                pin: pin,
-                created: Date.now(),
-                createdBy: "Superuser"
+                adminPin: aPin,
+                umpirePin: uPin,
+                created: Date.now()
             });
 
-            if(confirm(`✅ Event '${id}' Created!\nPIN: ${pin}\n\nGo to Admin Panel?`)) {
+            if(confirm(`✅ Cycling Event Created!\n\nID: ${id}\nAdmin: ${aPin}\nUmpire: ${uPin}`)) {
                 window.location.href = `admin.html?event=${id}&auth=admin`;
             }
         };
 
-        // --- LOOKUP FUNCTION ---
         window.checkEvent = async function() {
             const id = document.getElementById('checkId').value.trim().toLowerCase();
-            const resultBox = document.getElementById('eventResult');
-            
-            if(!id) return alert("Enter Event ID");
-
-            resultBox.classList.remove('hidden');
-            resultBox.innerHTML = "Searching...";
-            resultBox.className = "mt-4 p-4 rounded-lg border text-sm bg-slate-100 border-slate-200 text-slate-500";
-
-            try {
-                const snapshot = await get(ref(db, `events/${id}/meta`));
-                
-                if(snapshot.exists()) {
-                    const data = snapshot.val();
-                    resultBox.className = "mt-4 p-4 rounded-lg border text-sm bg-green-50 border-green-200 text-green-800";
-                    resultBox.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold uppercase text-lg">${id}</span>
-                            <span class="text-xs bg-green-200 px-2 py-1 rounded">ACTIVE</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span>PIN:</span>
-                            <span class="font-mono font-bold text-lg bg-white px-3 py-1 rounded border border-green-200 select-all">${data.pin}</span>
-                        </div>
-                        <p class="text-xs text-green-600 mt-2">Created: ${new Date(data.created).toLocaleDateString()}</p>
-                    `;
-                } else {
-                    resultBox.className = "mt-4 p-4 rounded-lg border text-sm bg-red-50 border-red-200 text-red-700";
-                    resultBox.innerHTML = `❌ Event <strong>'${id}'</strong> not found.`;
-                }
-            } catch (e) {
-                console.error(e);
-                resultBox.innerHTML = "Connection Error.";
+            if(!id) return;
+            const snapshot = await get(ref(db, `events/${id}/meta`));
+            if(snapshot.exists()) {
+                const d = snapshot.val();
+                alert(`FOUND: ${id}\nAdmin: ${d.adminPin}\nUmpire: ${d.umpirePin}`);
+            } else {
+                alert("Not found in SprintFutures events.");
             }
         };
     </script>
