@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login | LaxChamp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Back Link -->
+    <a href="index.html" class="absolute top-6 left-6 text-slate-500 hover:text-white flex items-center gap-2 text-sm font-bold transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        Back
+    </a>
+
+    <div class="mb-8 text-center">
+        <h1 class="text-2xl font-bold text-white mb-1">Organiser Access</h1>
+        <p class="text-slate-400 text-sm">Restricted Area</p>
+    </div>
+
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-8">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Event ID</label>
+                <input type="text" id="adminId" placeholder="e.g. nats25" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold uppercase text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Security PIN</label>
+                <div class="relative">
+                    <input type="password" id="adminPin" placeholder="••••" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors pr-10">
+                    <button onclick="togglePinVisibility()" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="eyeIcon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-slate-100 my-2">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email (Optional)</label>
+                <input type="email" id="adminEmail" placeholder="name@school.edu" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors">
+                
+                <div class="flex items-start gap-2 mt-3">
+                    <input type="checkbox" id="marketingConsent" class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                    <label for="marketingConsent" class="text-xs text-slate-500 cursor-pointer leading-tight">
+                        Keep me updated on new features and future tournaments.
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="goAdmin()" id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-md flex justify-center items-center mt-2">
+                <span>Login to Dashboard</span>
+            </button>
+            
+            <!-- DEBUG STATUS MESSAGE -->
+            <p id="statusMsg" class="text-center text-xs text-slate-400 mt-2 min-h-[20px]"></p>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+        window.togglePinVisibility = function() {
+            const input = document.getElementById('adminPin');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.add('text-indigo-600');
+            } else {
+                input.type = "password";
+                icon.classList.remove('text-indigo-600');
+            }
+        };
+
+        window.goAdmin = async function() {
+            const id = document.getElementById('adminId').value.trim().toLowerCase();
+            const pin = document.getElementById('adminPin').value.trim();
+            const email = document.getElementById('adminEmail').value.trim();
+            const consent = document.getElementById('marketingConsent').checked;
+            const btn = document.getElementById('loginBtn');
+            const status = document.getElementById('statusMsg');
+            
+            if(!id || !pin) return alert("Enter ID and PIN");
+
+            // Loading UI
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            btn.classList.add('opacity-75', 'cursor-wait');
+            status.innerText = "Connecting to database...";
+            status.className = "text-center text-xs text-indigo-500 mt-2 font-bold animate-pulse";
+
+            // Safety Timeout
+            const timeout = setTimeout(() => {
+                resetBtn();
+                status.innerText = "Connection Timed Out. Check internet.";
+                status.className = "text-center text-xs text-red-500 mt-2 font-bold";
+            }, 8000);
+
+            try {
+                // Fetch Meta Data
+                const snapshot = await get(ref(db, `lax/${id}/meta`));
+                clearTimeout(timeout); // Clear timeout if we get a response
+                
+                const meta = snapshot.val();
+
+                if (!meta) {
+                    status.innerText = "Event not found.";
+                    status.className = "text-center text-xs text-red-500 mt-2 font-bold";
+                    resetBtn();
+                    return;
+                }
+
+                status.innerText = "Verifying PIN...";
+
+                // Check PINs
+                const enteredPin = pin.toLowerCase();
+                const storedAdmin = String(meta.adminPin).toLowerCase();
+                const storedUmpire = String(meta.umpirePin).toLowerCase();
+
+                const isAdmin = storedAdmin === enteredPin;
+                const isUmpire = storedUmpire === enteredPin;
+
+                if (isAdmin || isUmpire) {
+                    status.innerText = "Success! Redirecting...";
+                    status.className = "text-center text-xs text-green-600 mt-2 font-bold";
+                    
+                    // Capture Data (Fire & Forget)
+                    if (email) {
+                        push(ref(db, 'staff_directory'), {
+                            email: email,
+                            eventId: id,
+                            role: isAdmin ? 'Admin' : 'Umpire',
+                            marketingConsent: consent,
+                            lastLogin: Date.now()
+                        }).catch(e => console.log("Log error:", e));
+                    }
+
+                    // Redirect
+                    setTimeout(() => {
+                         if (isUmpire) window.location.href = `umpire.html?event=${id}`;
+                         else window.location.href = `admin.html?event=${id}&auth=admin`;
+                    }, 500);
+
+                } else {
+                    status.innerText = "Incorrect PIN.";
+                    status.className = "text-center text-xs text-red-500 mt-2 font-bold";
+                    resetBtn();
+                }
+            } catch (e) {
+                clearTimeout(timeout);
+                console.error(e);
+                status.innerText = "Error: " + e.message;
+                status.className = "text-center text-xs text-red-500 mt-2 font-bold";
+                resetBtn();
+            }
+        };
+
+        function resetBtn() {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = false;
+            btn.innerHTML = `<span>Login to Dashboard</span>`;
+            btn.classList.remove('opacity-75', 'cursor-wait');
+        }
+    </script>
+</body>
+</html>
