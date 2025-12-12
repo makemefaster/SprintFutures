@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SprintFutures | Live</title>
+    <title>SprintFutures | Tournament Centre</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
@@ -18,7 +18,7 @@
             </div>
             <span class="text-3xl font-extrabold text-slate-800 tracking-tight">SprintFutures</span>
         </div>
-        <p class="text-slate-500 font-medium">Live Race Centre</p>
+        <p class="text-slate-500 font-medium">Tournament Management</p>
     </div>
 
     <!-- Spectator Card -->
@@ -40,22 +40,20 @@
     <!-- Footer / Staff Link -->
     <div class="mt-12 text-center space-y-4">
         <a href="staff.html" class="text-xs font-bold text-slate-300 hover:text-indigo-600 transition uppercase tracking-widest border border-transparent hover:border-indigo-100 px-4 py-2 rounded-full">
-            Staff / Organiser Login
+            Organiser / Umpire Login
         </a>
     </div>
 
-    <script>
-        // PWA Registration
+    <script type="module">
+        import './firebase-config.js'; // Just to ensure it loads
         if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
-        // Action
-        function goSpectator() {
+        window.goSpectator = function() {
             const id = document.getElementById('joinId').value.trim().toLowerCase();
             if(!id) return alert("Please enter an Event ID");
             window.location.href = `live.html?event=${id}`;
-        }
+        };
 
-        // Enter key support
         document.getElementById('joinId').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') goSpectator();
         });
