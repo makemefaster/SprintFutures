@@ -1,4 +1,4 @@
-const CACHE_NAME = "sprintfutures-v8"; // BUMPED TO FORCE UPDATE
+const CACHE_NAME = "sprintfutures-v9"; // BUMPED TO FORCE UPDATE
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
