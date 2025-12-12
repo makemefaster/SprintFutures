@@ -105,7 +105,7 @@
             }, 8000);
 
             try {
-                // Fetch Meta Data for Event (CYCLING PATH)
+                // Fetch Meta Data for Event (Cycling Path)
                 const snapshot = await get(ref(db, `events/${id}/meta`));
                 clearTimeout(timeout);
                 
@@ -118,7 +118,7 @@
                     return;
                 }
 
-                // Check Credentials
+                // Check Credentials (Case Insensitive)
                 const enteredPin = pin.toLowerCase();
                 const storedAdmin = String(meta.adminPin).toLowerCase();
                 const storedUmpire = String(meta.umpirePin).toLowerCase();
@@ -129,14 +129,17 @@
                     
                     if (email) {
                         push(ref(db, 'staff_directory'), {
-                            email: email, eventId: id, role: storedAdmin === enteredPin ? 'Admin' : 'Umpire', marketingConsent: consent, lastLogin: Date.now()
+                            email: email, 
+                            eventId: id, 
+                            role: storedAdmin === enteredPin ? 'Admin' : 'Umpire', 
+                            marketingConsent: consent, 
+                            lastLogin: Date.now()
                         }).catch(console.error);
                     }
 
                     setTimeout(() => {
-                        // Redirect both to Admin Dashboard (Cycling Hub)
-                        // Add query param so dashboard knows the role
                         const role = storedAdmin === enteredPin ? 'admin' : 'umpire';
+                        // IMPORTANT: Redirects to admin.html in the same folder
                         window.location.href = `admin.html?event=${id}&auth=${role}`;
                     }, 500);
 
