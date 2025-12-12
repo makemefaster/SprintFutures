@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Login | LaxChamp</title>
+    <title>Staff Login | SprintFutures</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
@@ -18,7 +18,7 @@
 
     <div class="mb-8 text-center">
         <h1 class="text-2xl font-bold text-white mb-1">Organiser Access</h1>
-        <p class="text-slate-400 text-sm">Restricted Area</p>
+        <p class="text-slate-400 text-sm">SprintFutures Restricted Area</p>
     </div>
 
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-8">
@@ -26,7 +26,7 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Event ID</label>
-                <input type="text" id="adminId" placeholder="e.g. nats25" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold uppercase text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors">
+                <input type="text" id="adminId" placeholder="e.g. nats24" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-lg font-bold uppercase text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors">
             </div>
 
             <div>
@@ -59,6 +59,8 @@
             <button onclick="goAdmin()" id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-md flex justify-center items-center mt-2">
                 <span>Login to Dashboard</span>
             </button>
+            
+            <p id="statusMsg" class="text-center text-xs text-slate-400 mt-2 min-h-[20px]"></p>
         </div>
 
     </div>
@@ -67,7 +69,6 @@
         import { db } from './firebase-config.js';
         import { ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-        // Toggle Password Visibility
         window.togglePinVisibility = function() {
             const input = document.getElementById('adminPin');
             const icon = document.getElementById('eyeIcon');
@@ -82,76 +83,80 @@
 
         window.goAdmin = async function() {
             const id = document.getElementById('adminId').value.trim().toLowerCase();
-            const pin = document.getElementById('adminPin').value.trim(); // We will normalize case later
+            const pin = document.getElementById('adminPin').value.trim();
             const email = document.getElementById('adminEmail').value.trim();
             const consent = document.getElementById('marketingConsent').checked;
             const btn = document.getElementById('loginBtn');
+            const status = document.getElementById('statusMsg');
             
             if(!id || !pin) return alert("Enter ID and PIN");
 
             // UI Loading State
+            btn.disabled = true;
             btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             btn.classList.add('opacity-75', 'cursor-wait');
+            status.innerText = "Connecting...";
+            status.className = "text-center text-xs text-indigo-500 mt-2 font-bold animate-pulse";
+
+            const timeout = setTimeout(() => {
+                resetBtn();
+                status.innerText = "Connection Timed Out.";
+                status.className = "text-center text-xs text-red-500 mt-2 font-bold";
+            }, 8000);
 
             try {
-                // Fetch Meta Data for Event
-                const snapshot = await get(ref(db, `lax/${id}/meta`));
+                // Fetch Meta Data for Event (CYCLING PATH)
+                const snapshot = await get(ref(db, `events/${id}/meta`));
+                clearTimeout(timeout);
+                
                 const meta = snapshot.val();
 
                 if (!meta) {
-                    alert("❌ Event ID not found.");
+                    status.innerText = "Event not found in SprintFutures.";
+                    status.className = "text-center text-xs text-red-500 mt-2 font-bold";
                     resetBtn();
                     return;
                 }
 
-                // Check PINs (Case-Insensitive)
+                // Check Credentials
                 const enteredPin = pin.toLowerCase();
                 const storedAdmin = String(meta.adminPin).toLowerCase();
                 const storedUmpire = String(meta.umpirePin).toLowerCase();
 
-                const isAdmin = storedAdmin === enteredPin;
-                const isUmpire = storedUmpire === enteredPin;
-
-                // Check Credentials
-                if (isAdmin || isUmpire) {
+                if (storedAdmin === enteredPin || storedUmpire === enteredPin) {
+                    status.innerText = "Success! Redirecting...";
+                    status.className = "text-center text-xs text-green-600 mt-2 font-bold";
                     
-                    // --- DATA CAPTURE START ---
                     if (email) {
-                        try {
-                            const newEntryRef = push(ref(db, 'staff_directory'));
-                            await set(newEntryRef, {
-                                email: email,
-                                eventId: id,
-                                role: isAdmin ? 'Admin' : 'Umpire',
-                                marketingConsent: consent,
-                                lastLogin: Date.now()
-                            });
-                        } catch (logErr) {
-                            console.log("Logging skipped", logErr);
-                        }
+                        push(ref(db, 'staff_directory'), {
+                            email: email, eventId: id, role: storedAdmin === enteredPin ? 'Admin' : 'Umpire', marketingConsent: consent, lastLogin: Date.now()
+                        }).catch(console.error);
                     }
-                    // --- DATA CAPTURE END ---
 
-                    // Redirect
-                    if (isUmpire) {
-                        window.location.href = `umpire.html?event=${id}`;
-                    } else {
-                        window.location.href = `admin.html?event=${id}&auth=admin`;
-                    }
+                    setTimeout(() => {
+                        // Redirect both to Admin Dashboard (Cycling Hub)
+                        // Add query param so dashboard knows the role
+                        const role = storedAdmin === enteredPin ? 'admin' : 'umpire';
+                        window.location.href = `admin.html?event=${id}&auth=${role}`;
+                    }, 500);
 
                 } else {
-                    alert("❌ Incorrect PIN");
+                    status.innerText = "Incorrect PIN.";
+                    status.className = "text-center text-xs text-red-500 mt-2 font-bold";
                     resetBtn();
                 }
             } catch (e) {
+                clearTimeout(timeout);
                 console.error(e);
-                alert("Connection Error. Check internet.");
+                status.innerText = "Error: " + e.message;
+                status.className = "text-center text-xs text-red-500 mt-2 font-bold";
                 resetBtn();
             }
         };
 
         function resetBtn() {
             const btn = document.getElementById('loginBtn');
+            btn.disabled = false;
             btn.innerHTML = `<span>Login to Dashboard</span>`;
             btn.classList.remove('opacity-75', 'cursor-wait');
         }
