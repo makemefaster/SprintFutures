@@ -18,32 +18,23 @@
         /* Neon Glow */
         .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(56, 189, 248, 0.3); }
         
-        /* Gold Text for Retirement Fund */
+        /* Gold Text */
         .gold-text { text-shadow: 0 0 10px rgba(234, 179, 8, 0.5), 0 0 20px rgba(234, 179, 8, 0.3); color: #facc15; }
+        
+        /* Cyan Glow for Slipstreamers */
+        .cyan-glow { text-shadow: 0 0 10px rgba(34, 211, 238, 0.5), 0 0 20px rgba(34, 211, 238, 0.3); }
 
         /* Podium Effects */
-        .podium-gold {
-            background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%);
-            background-size: 200% 200%;
-            animation: shimmer 3s linear infinite;
-            color: #422a02; border: 1px solid #ffd700;
-        }
-        .podium-silver {
-            background: linear-gradient(135deg, #3d4349 0%, #aeb5bc 50%, #3d4349 100%);
-            background-size: 200% 200%;
-            animation: shimmer 4s linear infinite;
-            color: #1a202c; border: 1px solid #cbd5e0;
-        }
-        .podium-bronze {
-            background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%);
-            background-size: 200% 200%;
-            animation: shimmer 5s linear infinite;
-            color: #2d1a12; border: 1px solid #d69e2e;
-        }
+        .podium-gold { background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%); animation: shimmer 3s linear infinite; color: #422a02; border: 1px solid #ffd700; }
+        .podium-silver { background: linear-gradient(135deg, #3d4349 0%, #aeb5bc 50%, #3d4349 100%); animation: shimmer 4s linear infinite; color: #1a202c; border: 1px solid #cbd5e0; }
+        .podium-bronze { background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%); animation: shimmer 5s linear infinite; color: #2d1a12; border: 1px solid #d69e2e; }
         @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
 
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Custom Scrollbar Styling (Visible but sleek) */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
@@ -90,7 +81,7 @@
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
+                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -104,7 +95,7 @@
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow scrollbar-hide relative">
+                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -137,56 +128,64 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAkTwI7TbJwXPbVQ2OrKjAAIaWLvyfuudc",
-            authDomain: "sprintfutures.firebaseapp.com",
-            databaseURL: "https://sprintfutures-default-rtdb.firebaseio.com",
-            projectId: "sprintfutures",
-            storageBucket: "sprintfutures.firebasestorage.app",
-            messagingSenderId: "535060943616",
-            appId: "1:535060943616:web:d15fc5225538eaeb3459e5",
-            measurementId: "G-9XFQV3PLEV"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        import { db } from './firebase-config.js';
+        import { ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
-        // --- DYNAMIC BRANDING LOGIC ---
+        // --- DYNAMIC BRANDING ---
         function checkBranding(id) {
             if(!id) return;
-            // Normalize ID for comparison (case-insensitive)
             const cleanId = id.toLowerCase();
             
-            // CUSTOM EVENT: HSS@LV
-            if(cleanId === 'hss@lv' || cleanId === 'hss-lv') {
+            // LOGIC FOR HSS EVENTS
+            if(cleanId.includes('hss')) {
                 const title = document.getElementById('sponsorTitle');
                 const sub = document.getElementById('sponsorSub');
                 const label = document.getElementById('sponsorLabel');
                 
-                label.innerText = "Supported By";
-                label.className = "text-[0.6rem] text-yellow-500 uppercase tracking-[0.3em] font-bold mb-1";
+                label.innerText = "Event Supported By";
+                label.className = "text-[0.6rem] text-cyan-400 uppercase tracking-[0.3em] font-bold mb-1";
                 
-                // Use innerHTML to allow styling specific words
-                title.innerHTML = `ANTHONY BRASIL <span class="text-yellow-400">RETIREMENT FUND</span>`;
-                title.className = "font-black text-xl md:text-3xl text-white tracking-tighter italic gold-text";
+                title.innerHTML = `HILLINGDON <span class="text-cyan-400">SLIPSTREAMERS</span>`;
+                title.className = "font-black text-xl md:text-3xl text-white tracking-tighter italic cyan-glow";
                 
-                sub.innerText = "Thank you for the memories!";
-                sub.className = "text-xs text-yellow-200/60 font-mono tracking-wide mt-1";
+                sub.innerHTML = `<a href="https://www.slipstreamers.co.uk/" target="_blank" class="hover:text-cyan-300 transition border-b border-transparent hover:border-cyan-300">www.slipstreamers.co.uk</a>`;
+                sub.className = "text-xs text-yellow-300 font-mono tracking-wide mt-1";
             }
         }
 
-        // --- AUTO SCROLL ---
+        // --- AUTO SCROLL LOGIC (UPDATED) ---
         let lastUpdate = Date.now();
         let scrollInterval = null;
+        let userInteracting = false;
         
-        function resetScrollTimer() { lastUpdate = Date.now(); stopScrolling(); }
-        setInterval(() => { if (Date.now() - lastUpdate > 60000) startScrolling(); }, 1000);
+        function resetScrollTimer() {
+            lastUpdate = Date.now();
+            stopScrolling();
+        }
+
+        // Listen for user interaction
+        ['touchstart', 'wheel', 'mousemove', 'click'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                userInteracting = true;
+                stopScrolling();
+                lastUpdate = Date.now(); // Reset idle timer
+                
+                // Debounce interaction flag
+                clearTimeout(window.userScrollTimeout);
+                window.userScrollTimeout = setTimeout(() => {
+                    userInteracting = false;
+                }, 10000); // Wait 10s after interaction before resuming
+            });
+        });
+        
+        setInterval(() => {
+            if (!userInteracting && Date.now() - lastUpdate > 60000) { // 60 Seconds idle
+                startScrolling();
+            }
+        }, 1000);
 
         function startScrolling() {
             if (scrollInterval) return; 
@@ -195,17 +194,26 @@
                 containers.forEach(el => {
                     if(el && el.scrollHeight > el.clientHeight) {
                         el.scrollTop += 1; 
-                        if(el.scrollTop + el.clientHeight >= el.scrollHeight) setTimeout(() => { el.scrollTop = 0; }, 2000);
+                        if(el.scrollTop + el.clientHeight >= el.scrollHeight) {
+                            setTimeout(() => { el.scrollTop = 0; }, 2000); // Pause at bottom then snap top
+                        }
                     }
                 });
             }, 50); 
         }
-        function stopScrolling() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; document.getElementById('sprintContainer').scrollTop = 0; document.getElementById('keirinContainer').scrollTop = 0; } }
+
+        function stopScrolling() {
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+                // Don't snap to top immediately when user touches, just stop moving
+            }
+        }
 
         if(eventID) {
             document.getElementById('eventTag').innerText = "LIVE: " + eventID.toUpperCase();
             document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-red-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1 animate-pulse";
-            checkBranding(eventID); // Apply custom ads if needed
+            checkBranding(eventID); 
             startListener('sprint', 'sprintContainer', 'sprintRound');
             startListener('keirin', 'keirinContainer', 'keirinRound');
         } else {
@@ -215,7 +223,9 @@
 
         function startListener(type, containerId, badgeId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
-                resetScrollTimer();
+                // Only reset scroll if NOT interacting, otherwise we interrupt the user
+                if (!userInteracting) resetScrollTimer();
+                
                 const data = snap.val();
                 const box = document.getElementById(containerId);
                 const badge = document.getElementById(badgeId);
@@ -229,19 +239,19 @@
                 badge.innerText = data.isFinished ? "FINAL STANDINGS" : "Round " + (data.roundCounter || 1);
                 if(data.isFinished) badge.className = "text-xs bg-yellow-500 text-black px-3 py-1 rounded-full font-bold border border-yellow-300 shadow-lg shadow-yellow-500/20";
 
-                // 1. CURRENT ROUND
+                // --- 1. CURRENT ROUND ---
                 if(data.isFinished) {
                     box.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-xl border border-yellow-500/30 mb-4 relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
                         <div class="text-center font-black text-yellow-400 mb-3 tracking-widest text-lg">OFFICIAL RESULTS</div>
-                        ${renderFinals(data.heats)}
+                        ${renderFinals(data.heats, data.riders)}
                     </div>`;
                 } else {
                     box.innerHTML += `<div class="text-xs uppercase font-bold text-sky-400 mb-3 flex items-center"><span class="w-2 h-2 bg-sky-400 rounded-full mr-2 animate-ping"></span> On Track Now</div>`;
-                    data.heats.forEach(h => { box.innerHTML += renderHeatCard(h); });
+                    data.heats.forEach(h => { box.innerHTML += renderHeatCard(h, data.riders); });
                 }
 
-                // 2. HISTORY
+                // --- 2. HISTORY ---
                 if(data.history && data.history.length > 0) {
                     [...data.history].reverse().forEach((hist, i) => {
                         let label = i === 0 ? "Most Recent" : "History";
@@ -252,7 +262,7 @@
                                 <span class="text-[0.6rem] ${labelClass} px-2 py-0.5 rounded border border-slate-700">${label}</span>
                             </div>
                             <div class="opacity-80 hover:opacity-100 transition duration-500">
-                                ${hist.heats.map(h => renderHeatCard(h, true)).join('')}
+                                ${hist.heats.map(h => renderHeatCard(h, data.riders, true)).join('')}
                             </div>
                         </div>`;
                     });
@@ -260,7 +270,7 @@
             });
         }
 
-        function renderHeatCard(h, isHistory=false) {
+        function renderHeatCard(h, riders, isHistory=false) {
             let borderClass = isHistory ? 'border-slate-700' : 'border-slate-600 hover:border-slate-500';
             let bgClass = isHistory ? 'bg-slate-800' : 'bg-slate-800 shadow-lg';
             let catLabel = h.catName ? `<span class="bg-black/40 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2 text-slate-300 border border-white/10">${h.catName}</span>` : '';
@@ -303,7 +313,7 @@
             return html + `</div></div>`;
         }
 
-        function renderFinals(heats) {
+        function renderFinals(heats, riders) {
             let list = [];
             heats.forEach((h, heatIdx) => {
                (h.res||[]).forEach((rid, placeIdx) => {
@@ -351,5 +361,3 @@
     </script>
 </body>
 </html>
-
-
