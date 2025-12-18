@@ -21,8 +21,8 @@
         /* Gold Text */
         .gold-text { text-shadow: 0 0 10px rgba(234, 179, 8, 0.5), 0 0 20px rgba(234, 179, 8, 0.3); color: #facc15; }
         
-        /* Cyan Glow for Slipstreamers */
-        .cyan-glow { text-shadow: 0 0 10px rgba(34, 211, 238, 0.5), 0 0 20px rgba(34, 211, 238, 0.3); }
+        /* Orange Glow for Slipstreamers (Updated from Cyan) */
+        .orange-glow { text-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.3); }
 
         /* Podium Effects */
         .podium-gold { background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%); animation: shimmer 3s linear infinite; color: #422a02; border: 1px solid #ffd700; }
@@ -134,7 +134,7 @@
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
-        // --- DYNAMIC BRANDING ---
+        // --- DYNAMIC BRANDING LOGIC (UPDATED) ---
         function checkBranding(id) {
             if(!id) return;
             const cleanId = id.toLowerCase();
@@ -146,17 +146,18 @@
                 const label = document.getElementById('sponsorLabel');
                 
                 label.innerText = "Event Supported By";
-                label.className = "text-[0.6rem] text-cyan-400 uppercase tracking-[0.3em] font-bold mb-1";
+                label.className = "text-[0.6rem] text-orange-400 uppercase tracking-[0.3em] font-bold mb-1";
                 
-                title.innerHTML = `HILLINGDON <span class="text-cyan-400">SLIPSTREAMERS</span>`;
-                title.className = "font-black text-xl md:text-3xl text-white tracking-tighter italic cyan-glow";
+                // Slipstreamers Branding (Orange theme)
+                title.innerHTML = `HILLINGDON <span class="text-orange-500">SLIPSTREAMERS</span>`;
+                title.className = "font-black text-xl md:text-3xl text-white tracking-tighter italic orange-glow";
                 
-                sub.innerHTML = `<a href="https://www.slipstreamers.co.uk/" target="_blank" class="hover:text-cyan-300 transition border-b border-transparent hover:border-cyan-300">www.slipstreamers.co.uk</a>`;
+                sub.innerHTML = `<a href="https://www.slipstreamers.co.uk/" target="_blank" class="hover:text-orange-300 transition border-b border-transparent hover:border-orange-300">www.slipstreamers.co.uk</a>`;
                 sub.className = "text-xs text-yellow-300 font-mono tracking-wide mt-1";
             }
         }
 
-        // --- AUTO SCROLL LOGIC (UPDATED) ---
+        // --- AUTO SCROLL LOGIC ---
         let lastUpdate = Date.now();
         let scrollInterval = null;
         let userInteracting = false;
@@ -206,7 +207,6 @@
             if (scrollInterval) {
                 clearInterval(scrollInterval);
                 scrollInterval = null;
-                // Don't snap to top immediately when user touches, just stop moving
             }
         }
 
@@ -223,7 +223,7 @@
 
         function startListener(type, containerId, badgeId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
-                // Only reset scroll if NOT interacting, otherwise we interrupt the user
+                // Only reset scroll if NOT interacting
                 if (!userInteracting) resetScrollTimer();
                 
                 const data = snap.val();
