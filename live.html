@@ -30,11 +30,21 @@
         .podium-bronze { background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%); animation: shimmer 5s linear infinite; color: #2d1a12; border: 1px solid #d69e2e; }
         @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
 
-        /* Custom Scrollbar Styling (Visible) */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
+        /* FORCE SCROLLBAR VISIBILITY & MOBILE DRAG SUPPORT */
+        .smooth-scroll {
+            -webkit-overflow-scrolling: touch; /* Critical for iOS momentum scrolling */
+            overflow-y: auto;
+        }
+        
+        /* High Contrast Scrollbar */
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        ::-webkit-scrollbar-thumb { 
+            background: rgba(255,255,255,0.4); 
+            border-radius: 6px; 
+            border: 2px solid rgba(0,0,0,0.3); /* Adds padding around thumb */
+        }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.6); }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
@@ -81,8 +91,8 @@
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- REMOVED scrollbar-hide to allow manual scrolling -->
-                <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
+                <!-- Added smooth-scroll class and inline touch styles -->
+                <div id="sprintContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -96,8 +106,8 @@
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- REMOVED scrollbar-hide to allow manual scrolling -->
-                <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
+                <!-- Added smooth-scroll class -->
+                <div id="keirinContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -169,19 +179,18 @@
             stopScrolling();
         }
 
-        // Listen for user interaction (Removed 'mousemove' to be less sensitive)
-        ['touchstart', 'wheel', 'click'].forEach(evt => {
+        // Listen for user interaction
+        ['touchstart', 'wheel', 'click', 'scroll'].forEach(evt => {
             document.addEventListener(evt, () => {
                 userInteracting = true;
                 stopScrolling();
-                lastUpdate = Date.now(); // Reset idle timer
+                lastUpdate = Date.now();
                 
-                // Debounce interaction flag
                 clearTimeout(window.userScrollTimeout);
                 window.userScrollTimeout = setTimeout(() => {
                     userInteracting = false;
-                }, 10000); // Wait 10s after interaction before resuming
-            });
+                }, 10000); 
+            }, { passive: true });
         });
         
         setInterval(() => {
@@ -197,9 +206,7 @@
                 containers.forEach(el => {
                     if(el && el.scrollHeight > el.clientHeight) {
                         el.scrollTop += 1; 
-                        // When hitting bottom, wait 2s then snap to top
                         if(el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
-                             // Using a flag to prevent rapid resets
                              if(!el.isResetting) {
                                  el.isResetting = true;
                                  setTimeout(() => { 
@@ -233,7 +240,8 @@
 
         function startListener(type, containerId, badgeId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
-                resetScrollTimer();
+                if (!userInteracting) resetScrollTimer();
+                
                 const data = snap.val();
                 const box = document.getElementById(containerId);
                 const badge = document.getElementById(badgeId);
@@ -247,7 +255,7 @@
                 badge.innerText = data.isFinished ? "FINAL STANDINGS" : "Round " + (data.roundCounter || 1);
                 if(data.isFinished) badge.className = "text-xs bg-yellow-500 text-black px-3 py-1 rounded-full font-bold border border-yellow-300 shadow-lg shadow-yellow-500/20";
 
-                // --- 1. CURRENT ROUND ---
+                // --- 1. CURRENT ROUND (With sorting) ---
                 if(data.isFinished) {
                     box.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-xl border border-yellow-500/30 mb-4 relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
@@ -256,7 +264,17 @@
                     </div>`;
                 } else {
                     box.innerHTML += `<div class="text-xs uppercase font-bold text-sky-400 mb-3 flex items-center"><span class="w-2 h-2 bg-sky-400 rounded-full mr-2 animate-ping"></span> On Track Now</div>`;
-                    data.heats.forEach(h => { box.innerHTML += renderHeatCard(h, data.riders); });
+                    
+                    // SORTING LOGIC: Results first
+                    const sortedHeats = [...data.heats].sort((a,b) => {
+                        const aHasRes = (a.res && a.res.length > 0);
+                        const bHasRes = (b.res && b.res.length > 0);
+                        if (aHasRes && !bHasRes) return -1; // A comes first
+                        if (!aHasRes && bHasRes) return 1;  // B comes first
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    sortedHeats.forEach(h => { box.innerHTML += renderHeatCard(h, data.riders); });
                 }
 
                 // --- 2. HISTORY ---
@@ -283,6 +301,12 @@
             let bgClass = isHistory ? 'bg-slate-800' : 'bg-slate-800 shadow-lg';
             let catLabel = h.catName ? `<span class="bg-black/40 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2 text-slate-300 border border-white/10">${h.catName}</span>` : '';
             let timeDisplay = h.startTime ? `<span class="text-green-400 text-xs font-mono ml-auto flex items-center"><span class="mr-1">⏰</span>${h.startTime}</span>` : '';
+
+            // Highlight completed live heats
+            if(!isHistory && h.res && h.res.length > 0) {
+                bgClass = 'bg-slate-800 border-l-4 border-green-500 shadow-2xl';
+                timeDisplay = `<span class="text-green-400 text-xs font-bold ml-auto uppercase">Finished</span>`;
+            }
 
             let html = `<div class="${bgClass} rounded-xl border ${borderClass} overflow-hidden mb-3 transition-all duration-300">
                 <div class="bg-black/30 p-2 text-xs font-bold text-slate-400 flex justify-between items-center backdrop-blur-sm">
