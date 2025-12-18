@@ -40,7 +40,7 @@
         ::-webkit-scrollbar { width: 14px; display: block; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); }
         ::-webkit-scrollbar-thumb { 
-            background-color: #fbbf24; /* Amber-400 (Yellow) for high visibility */
+            background-color: #fbbf24; /* Amber-400 */
             border-radius: 7px; 
             border: 3px solid rgba(0,0,0,0.4); 
         }
@@ -64,7 +64,7 @@
                 </div>
             </div>
             
-            <!-- SPONSOR AREA (Dynamic) -->
+            <!-- SPONSOR AREA -->
             <div class="w-full md:w-auto" id="sponsorArea">
                 <div class="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-600 rounded-xl p-4 flex flex-col items-center md:items-end shadow-2xl relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
@@ -79,12 +79,21 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <!-- Added h-0 to parent to allow flex children to manage height properly -->
     <div class="flex-grow p-4 overflow-hidden relative h-0">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+        
+        <!-- Waiting Message (Hidden by default) -->
+        <div id="waitingMessage" class="hidden absolute inset-0 flex items-center justify-center z-0">
+            <div class="text-center">
+                <div class="text-4xl animate-bounce mb-4">🏁</div>
+                <h2 class="text-2xl font-bold text-slate-500">Waiting for Tournament Start</h2>
+                <p class="text-slate-600 text-sm mt-2 font-mono">Heats are being generated...</p>
+            </div>
+        </div>
+
+        <div id="mainGrid" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full transition-all duration-500 relative z-10">
             
             <!-- SPRINT COLUMN -->
-            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full">
+            <div id="sprintCol" class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full hidden">
                 <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md z-10 flex-shrink-0">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🚴</span>
@@ -92,14 +101,13 @@
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- Added min-h-0 to fix flex scrolling bug -->
                 <div id="sprintContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
-                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
+                    <!-- Content Injected Here -->
                 </div>
             </div>
 
             <!-- KEIRIN COLUMN -->
-            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full">
+            <div id="keirinCol" class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full hidden">
                 <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md z-10 flex-shrink-0">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🏁</span>
@@ -107,9 +115,8 @@
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- Added min-h-0 to fix flex scrolling bug -->
                 <div id="keirinContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
-                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
+                    <!-- Content Injected Here -->
                 </div>
             </div>
 
@@ -147,116 +154,119 @@
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
-        // --- DYNAMIC BRANDING LOGIC ---
+        // --- BRANDING ---
         function checkBranding(id) {
             if(!id) return;
             const cleanId = id.toLowerCase();
-            
-            // LOGIC FOR HSS EVENTS
             if(cleanId.includes('hss')) {
                 const title = document.getElementById('sponsorTitle');
                 const sub = document.getElementById('sponsorSub');
                 const label = document.getElementById('sponsorLabel');
-                
                 label.innerText = "Event Supported By";
                 label.className = "text-[0.6rem] text-orange-400 uppercase tracking-[0.3em] font-bold mb-1";
-                
-                // Slipstreamers Branding (Orange theme)
                 title.innerHTML = `HILLINGDON <span class="text-orange-500">SLIPSTREAMERS</span>`;
                 title.className = "font-black text-xl md:text-3xl text-white tracking-tighter italic orange-glow";
-                
                 sub.innerHTML = `<a href="https://www.slipstreamers.co.uk/" target="_blank" class="hover:text-orange-300 transition border-b border-transparent hover:border-orange-300">www.slipstreamers.co.uk</a>`;
                 sub.className = "text-xs text-yellow-300 font-mono tracking-wide mt-1";
             }
         }
 
-        // --- AUTO SCROLL LOGIC ---
+        // --- SCROLLING ---
         let lastUpdate = Date.now();
         let scrollInterval = null;
         let userInteracting = false;
         
-        function resetScrollTimer() {
-            lastUpdate = Date.now();
-            stopScrolling();
-        }
-
-        // Listen for user interaction
+        function resetScrollTimer() { lastUpdate = Date.now(); stopScrolling(); }
         ['touchstart', 'wheel', 'click', 'scroll', 'mousedown'].forEach(evt => {
             document.addEventListener(evt, () => {
-                userInteracting = true;
-                stopScrolling();
-                lastUpdate = Date.now();
-                
+                userInteracting = true; stopScrolling(); lastUpdate = Date.now();
                 clearTimeout(window.userScrollTimeout);
-                window.userScrollTimeout = setTimeout(() => {
-                    userInteracting = false;
-                }, 10000); 
+                window.userScrollTimeout = setTimeout(() => { userInteracting = false; }, 10000); 
             }, { passive: true });
         });
         
-        setInterval(() => {
-            if (!userInteracting && Date.now() - lastUpdate > 60000) { // 60 Seconds idle
-                startScrolling();
-            }
-        }, 1000);
+        setInterval(() => { if (!userInteracting && Date.now() - lastUpdate > 60000) startScrolling(); }, 1000);
 
         function startScrolling() {
             if (scrollInterval) return; 
             const containers = [document.getElementById('sprintContainer'), document.getElementById('keirinContainer')];
             scrollInterval = setInterval(() => {
                 containers.forEach(el => {
-                    if(el && el.scrollHeight > el.clientHeight) {
+                    if(el && el.offsetParent !== null && el.scrollHeight > el.clientHeight) { // Only scroll visible
                         el.scrollTop += 1; 
                         if(el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
                              if(!el.isResetting) {
                                  el.isResetting = true;
-                                 setTimeout(() => { 
-                                     el.scrollTop = 0; 
-                                     el.isResetting = false; 
-                                 }, 2000);
+                                 setTimeout(() => { el.scrollTop = 0; el.isResetting = false; }, 2000);
                              }
                         }
                     }
                 });
             }, 50); 
         }
-
-        function stopScrolling() {
-            if (scrollInterval) {
-                clearInterval(scrollInterval);
-                scrollInterval = null;
-            }
-        }
+        function stopScrolling() { if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; } }
 
         if(eventID) {
             document.getElementById('eventTag').innerText = "LIVE: " + eventID.toUpperCase();
             document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-red-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1 animate-pulse";
             checkBranding(eventID); 
-            startListener('sprint', 'sprintContainer', 'sprintRound');
-            startListener('keirin', 'keirinContainer', 'keirinRound');
+            startListener('sprint', 'sprintContainer', 'sprintRound', 'sprintCol');
+            startListener('keirin', 'keirinContainer', 'keirinRound', 'keirinCol');
         } else {
             document.getElementById('eventTag').innerText = "NO SIGNAL";
             document.getElementById('eventTag').className = "text-[0.65rem] inline-block bg-slate-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1";
         }
 
-        function startListener(type, containerId, badgeId) {
+        // --- LAYOUT LOGIC ---
+        function updateLayout() {
+            const s = document.getElementById('sprintCol');
+            const k = document.getElementById('keirinCol');
+            const grid = document.getElementById('mainGrid');
+            const wait = document.getElementById('waitingMessage');
+            
+            const sHidden = s.classList.contains('hidden');
+            const kHidden = k.classList.contains('hidden');
+
+            if(sHidden && kHidden) {
+                wait.classList.remove('hidden');
+            } else {
+                wait.classList.add('hidden');
+                if (sHidden || kHidden) {
+                    // Single column mode: Center it, max width
+                    grid.classList.remove('lg:grid-cols-2');
+                    grid.classList.add('max-w-4xl'); // 4xl creates a nice single column width
+                } else {
+                    // Two column mode
+                    grid.classList.add('lg:grid-cols-2');
+                    grid.classList.remove('max-w-4xl'); // Allow full width expansion
+                }
+            }
+        }
+
+        function startListener(type, containerId, badgeId, colId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
                 if (!userInteracting) resetScrollTimer();
-                
                 const data = snap.val();
+                const col = document.getElementById(colId);
+
+                // HIDE COLUMN IF NO DATA
+                if(!data || !data.heats) {
+                    col.classList.add('hidden');
+                    updateLayout();
+                    return;
+                }
+                
+                // SHOW COLUMN
+                col.classList.remove('hidden');
+                updateLayout();
+
                 const box = document.getElementById(containerId);
                 const badge = document.getElementById(badgeId);
                 box.innerHTML = '';
 
-                if(!data || !data.heats) {
-                    box.innerHTML = `<div class="text-center text-slate-500 py-10 italic">Waiting for Race Control...</div>`;
-                    return;
-                }
-
                 badge.innerText = data.isFinished ? "FINAL STANDINGS" : "Round " + (data.roundCounter || 1);
                 if(data.isFinished) badge.className = "text-xs bg-yellow-500 text-black px-3 py-1 rounded-full font-bold border border-yellow-300 shadow-lg shadow-yellow-500/20";
 
-                // --- 1. CURRENT ROUND (With sorting) ---
                 if(data.isFinished) {
                     box.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-xl border border-yellow-500/30 mb-4 relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
@@ -266,19 +276,16 @@
                 } else {
                     box.innerHTML += `<div class="text-xs uppercase font-bold text-sky-400 mb-3 flex items-center"><span class="w-2 h-2 bg-sky-400 rounded-full mr-2 animate-ping"></span> On Track Now</div>`;
                     
-                    // SORTING LOGIC: Completed heats first
                     const sortedHeats = [...data.heats].sort((a,b) => {
                         const aHasRes = (a.res && a.res.length > 0);
                         const bHasRes = (b.res && b.res.length > 0);
-                        if (aHasRes && !bHasRes) return -1; // A comes first
-                        if (!aHasRes && bHasRes) return 1;  // B comes first
+                        if (aHasRes && !bHasRes) return -1; 
+                        if (!aHasRes && bHasRes) return 1;  
                         return a.name.localeCompare(b.name);
                     });
-
                     sortedHeats.forEach(h => { box.innerHTML += renderHeatCard(h, data.riders); });
                 }
 
-                // --- 2. HISTORY ---
                 if(data.history && data.history.length > 0) {
                     [...data.history].reverse().forEach((hist, i) => {
                         let label = i === 0 ? "Most Recent" : "History";
@@ -303,7 +310,6 @@
             let catLabel = h.catName ? `<span class="bg-black/40 px-2 py-0.5 rounded text-[0.6rem] uppercase tracking-wider ml-2 text-slate-300 border border-white/10">${h.catName}</span>` : '';
             let timeDisplay = h.startTime ? `<span class="text-green-400 text-xs font-mono ml-auto flex items-center"><span class="mr-1">⏰</span>${h.startTime}</span>` : '';
 
-            // Highlight completed live heats
             if(!isHistory && h.res && h.res.length > 0) {
                 bgClass = 'bg-slate-800 border-l-4 border-green-500 shadow-2xl';
                 timeDisplay = `<span class="text-green-400 text-xs font-bold ml-auto uppercase">Finished</span>`;
@@ -322,22 +328,14 @@
                     let status = idx !== -1 ? `<span class="text-green-400 font-bold text-xs ml-2 bg-green-900/30 px-2 py-0.5 rounded border border-green-500/30">${idx+1}</span>` : '';
                     let dim = isHistory ? "text-slate-400" : "text-slate-200";
                     let bibDisplay = `#${r.bib||'-'}`;
-
-                    if (r.status === 'DNS') {
-                        dim = "text-slate-600 line-through decoration-slate-500";
-                        status = '<span class="text-[0.6rem] bg-slate-700 text-slate-400 px-1 rounded">DNS</span>';
-                    } else if (r.status === 'DSQ') {
-                        dim = "text-red-400";
-                        status = '<span class="text-[0.6rem] bg-red-900 text-red-300 px-1 rounded border border-red-700">DSQ</span>';
-                    } else if (idx===0 && isHistory) {
-                        dim = "text-green-400 font-bold";
-                    }
+                    if (r.status === 'DNS') { dim = "text-slate-600 line-through decoration-slate-500"; status = '<span class="text-[0.6rem] bg-slate-700 text-slate-400 px-1 rounded">DNS</span>'; }
+                    else if (r.status === 'DSQ') { dim = "text-red-400"; status = '<span class="text-[0.6rem] bg-red-900 text-red-300 px-1 rounded border border-red-700">DSQ</span>'; }
+                    else if (idx===0 && isHistory) { dim = "text-green-400 font-bold"; }
 
                     html += `<div class="flex items-center justify-between text-sm group">
                         <div class="flex items-center">
                             <span class="w-8 text-slate-500 text-xs font-mono group-hover:text-slate-300 transition">${bibDisplay}</span>
                             <span class="font-medium ${dim}">${r.name}</span>
-                            <span class="text-[0.6rem] text-slate-600 ml-2 font-mono">${r.time ? 'Q:'+r.time : ''}</span>
                         </div>
                         ${status}
                     </div>`;
@@ -348,45 +346,20 @@
 
         function renderFinals(heats, riders) {
             let list = [];
-            heats.forEach((h, heatIdx) => {
-               (h.res||[]).forEach((rid, placeIdx) => {
-                   let r = (h.riders || []).find(x => x.id == rid);
-                   if(r) list.push({ ...r, heatIdx, placeIdx, heatName: h.name });
-               });
-            });
-            list.sort((a,b) => {
-                if(a.heatIdx !== b.heatIdx) return a.heatIdx - b.heatIdx;
-                return a.placeIdx - b.placeIdx;
-            });
+            heats.forEach((h, heatIdx) => { (h.res||[]).forEach((rid, placeIdx) => { let r = (h.riders || []).find(x => x.id == rid); if(r) list.push({ ...r, heatIdx, placeIdx, heatName: h.name }); }); });
+            list.sort((a,b) => { if(a.heatIdx !== b.heatIdx) return a.heatIdx - b.heatIdx; return a.placeIdx - b.placeIdx; });
 
             let html = '';
             list.forEach((r, i) => {
-                let podiumClass = "";
-                let badge = "";
-
-                if (i === 0) {
-                    podiumClass = "podium-gold shadow-lg transform scale-[1.02] mb-2 rounded-lg font-black";
-                    badge = "🏆 1ST";
-                } else if (i === 1) {
-                    podiumClass = "podium-silver mb-1 rounded-lg font-bold";
-                    badge = "🥈 2ND";
-                } else if (i === 2) {
-                    podiumClass = "podium-bronze mb-1 rounded-lg font-bold";
-                    badge = "🥉 3RD";
-                } else {
-                    podiumClass = "text-slate-400 border-b border-white/5 hover:bg-white/5";
-                    badge = `<span class="text-slate-600 text-xs font-mono">${i+1}.</span>`;
-                }
+                let podiumClass = "", badge = "";
+                if (i === 0) { podiumClass = "podium-gold shadow-lg transform scale-[1.02] mb-2 rounded-lg font-black"; badge = "🏆 1ST"; }
+                else if (i === 1) { podiumClass = "podium-silver mb-1 rounded-lg font-bold"; badge = "🥈 2ND"; }
+                else if (i === 2) { podiumClass = "podium-bronze mb-1 rounded-lg font-bold"; badge = "🥉 3RD"; }
+                else { podiumClass = "text-slate-400 border-b border-white/5 hover:bg-white/5"; badge = `<span class="text-slate-600 text-xs font-mono">${i+1}.</span>`; }
 
                 html += `<div class="flex justify-between items-center text-sm ${podiumClass} py-3 px-4 transition-all">
-                   <div class="flex items-center gap-3">
-                       <span class="w-12">${badge}</span>
-                       <span class="uppercase tracking-wide">${r.name}</span>
-                   </div>
-                   <div class="flex items-center gap-2">
-                       <span class="text-[0.6rem] text-slate-500 font-mono">${r.time ? 'Q:'+r.time : ''}</span>
-                       <span class="text-[0.65rem] opacity-60 font-mono uppercase tracking-wide">${r.heatName}</span>
-                   </div>
+                   <div class="flex items-center gap-3"><span class="w-12">${badge}</span><span class="uppercase tracking-wide">${r.name}</span></div>
+                   <div class="flex items-center gap-2"><span class="text-[0.6rem] text-slate-500 font-mono">${r.time ? 'Q:'+r.time : ''}</span><span class="text-[0.65rem] opacity-60 font-mono uppercase tracking-wide">${r.heatName}</span></div>
                </div>`;
             });
             return html;
