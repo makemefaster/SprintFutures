@@ -30,27 +30,27 @@
         .podium-bronze { background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%); animation: shimmer 5s linear infinite; color: #2d1a12; border: 1px solid #d69e2e; }
         @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
 
-        /* FORCE SCROLLBAR VISIBILITY & MOBILE DRAG SUPPORT */
+        /* HIGH CONTRAST SCROLLBARS */
         .smooth-scroll {
-            -webkit-overflow-scrolling: touch; /* Critical for iOS momentum scrolling */
+            -webkit-overflow-scrolling: touch;
             overflow-y: auto;
+            touch-action: pan-y;
         }
         
-        /* High Contrast Scrollbar */
-        ::-webkit-scrollbar { width: 12px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        ::-webkit-scrollbar { width: 14px; display: block; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); }
         ::-webkit-scrollbar-thumb { 
-            background: rgba(255,255,255,0.4); 
-            border-radius: 6px; 
-            border: 2px solid rgba(0,0,0,0.3); /* Adds padding around thumb */
+            background-color: #fbbf24; /* Amber-400 (Yellow) for high visibility */
+            border-radius: 7px; 
+            border: 3px solid rgba(0,0,0,0.4); 
         }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.6); }
+        ::-webkit-scrollbar-thumb:hover { background-color: #f59e0b; }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
 
     <!-- HEADER -->
-    <div class="bg-slate-900 border-b border-slate-700 p-4 shadow-xl z-20">
+    <div class="bg-slate-900 border-b border-slate-700 p-4 shadow-xl z-20 flex-shrink-0">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-start">
                 <div class="flex items-center space-x-3">
@@ -79,35 +79,36 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <div class="flex-grow p-4 overflow-hidden relative">
+    <!-- Added h-0 to parent to allow flex children to manage height properly -->
+    <div class="flex-grow p-4 overflow-hidden relative h-0">
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             
             <!-- SPRINT COLUMN -->
-            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
-                <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md z-10">
+            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full">
+                <div class="bg-gradient-to-r from-red-600 to-red-800 p-4 flex justify-between items-center shadow-md z-10 flex-shrink-0">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🚴</span>
                         <h2 class="font-black text-xl italic uppercase tracking-wide">Sprint Ladder</h2>
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- Added smooth-scroll class and inline touch styles -->
-                <div id="sprintContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll">
+                <!-- Added min-h-0 to fix flex scrolling bug -->
+                <div id="sprintContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
 
             <!-- KEIRIN COLUMN -->
-            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm">
-                <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md z-10">
+            <div class="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700 flex flex-col shadow-lg backdrop-blur-sm h-full">
+                <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex justify-between items-center shadow-md z-10 flex-shrink-0">
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl">🏁</span>
                         <h2 class="font-black text-xl italic uppercase tracking-wide">Keirin Ladder</h2>
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
-                <!-- Added smooth-scroll class -->
-                <div id="keirinContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll">
+                <!-- Added min-h-0 to fix flex scrolling bug -->
+                <div id="keirinContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
@@ -116,7 +117,7 @@
     </div>
 
     <!-- FOOTER -->
-    <div class="bg-black border-t-4 border-orange-600 relative z-30">
+    <div class="bg-black border-t-4 border-orange-600 relative z-30 flex-shrink-0">
         <div class="absolute left-0 top-0 bottom-0 bg-orange-600 text-white font-black text-xs px-2 flex items-center z-10 shadow-lg uppercase tracking-widest writing-vertical-lr sm:writing-horizontal-tb">Sponsors</div>
         <div class="marquee-container py-3 bg-gradient-to-b from-slate-900 to-black">
             <div class="marquee-content flex items-center space-x-16 px-4">
@@ -180,7 +181,7 @@
         }
 
         // Listen for user interaction
-        ['touchstart', 'wheel', 'click', 'scroll'].forEach(evt => {
+        ['touchstart', 'wheel', 'click', 'scroll', 'mousedown'].forEach(evt => {
             document.addEventListener(evt, () => {
                 userInteracting = true;
                 stopScrolling();
@@ -265,7 +266,7 @@
                 } else {
                     box.innerHTML += `<div class="text-xs uppercase font-bold text-sky-400 mb-3 flex items-center"><span class="w-2 h-2 bg-sky-400 rounded-full mr-2 animate-ping"></span> On Track Now</div>`;
                     
-                    // SORTING LOGIC: Results first
+                    // SORTING LOGIC: Completed heats first
                     const sortedHeats = [...data.heats].sort((a,b) => {
                         const aHasRes = (a.res && a.res.length > 0);
                         const bHasRes = (b.res && b.res.length > 0);
