@@ -21,7 +21,7 @@
         /* Gold Text */
         .gold-text { text-shadow: 0 0 10px rgba(234, 179, 8, 0.5), 0 0 20px rgba(234, 179, 8, 0.3); color: #facc15; }
         
-        /* Orange Glow for Slipstreamers (Updated from Cyan) */
+        /* Orange Glow for Slipstreamers */
         .orange-glow { text-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.3); }
 
         /* Podium Effects */
@@ -30,11 +30,11 @@
         .podium-bronze { background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%); animation: shimmer 5s linear infinite; color: #2d1a12; border: 1px solid #d69e2e; }
         @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
 
-        /* Custom Scrollbar Styling (Visible but sleek) */
+        /* Custom Scrollbar Styling (Visible) */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
@@ -81,6 +81,7 @@
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
+                <!-- REMOVED scrollbar-hide to allow manual scrolling -->
                 <div id="sprintContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
@@ -95,6 +96,7 @@
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
+                <!-- REMOVED scrollbar-hide to allow manual scrolling -->
                 <div id="keirinContainer" class="p-4 space-y-4 overflow-y-auto flex-grow relative">
                     <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
@@ -134,7 +136,7 @@
         const params = new URLSearchParams(window.location.search);
         const eventID = params.get('event');
 
-        // --- DYNAMIC BRANDING LOGIC (UPDATED) ---
+        // --- DYNAMIC BRANDING LOGIC ---
         function checkBranding(id) {
             if(!id) return;
             const cleanId = id.toLowerCase();
@@ -167,8 +169,8 @@
             stopScrolling();
         }
 
-        // Listen for user interaction
-        ['touchstart', 'wheel', 'mousemove', 'click'].forEach(evt => {
+        // Listen for user interaction (Removed 'mousemove' to be less sensitive)
+        ['touchstart', 'wheel', 'click'].forEach(evt => {
             document.addEventListener(evt, () => {
                 userInteracting = true;
                 stopScrolling();
@@ -195,8 +197,16 @@
                 containers.forEach(el => {
                     if(el && el.scrollHeight > el.clientHeight) {
                         el.scrollTop += 1; 
-                        if(el.scrollTop + el.clientHeight >= el.scrollHeight) {
-                            setTimeout(() => { el.scrollTop = 0; }, 2000); // Pause at bottom then snap top
+                        // When hitting bottom, wait 2s then snap to top
+                        if(el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
+                             // Using a flag to prevent rapid resets
+                             if(!el.isResetting) {
+                                 el.isResetting = true;
+                                 setTimeout(() => { 
+                                     el.scrollTop = 0; 
+                                     el.isResetting = false; 
+                                 }, 2000);
+                             }
                         }
                     }
                 });
@@ -223,9 +233,7 @@
 
         function startListener(type, containerId, badgeId) {
             onValue(ref(db, `events/${eventID}/${type}`), (snap) => {
-                // Only reset scroll if NOT interacting
-                if (!userInteracting) resetScrollTimer();
-                
+                resetScrollTimer();
                 const data = snap.val();
                 const box = document.getElementById(containerId);
                 const badge = document.getElementById(badgeId);
