@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Live Results | SprintFutures</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,41 +15,34 @@
         .marquee-content { display: inline-block; animation: marquee 30s linear infinite; }
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
-        /* Neon Glow */
+        /* Effects */
         .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(56, 189, 248, 0.3); }
-        
-        /* Gold Text */
         .gold-text { text-shadow: 0 0 10px rgba(234, 179, 8, 0.5), 0 0 20px rgba(234, 179, 8, 0.3); color: #facc15; }
-        
-        /* Orange Glow for Slipstreamers */
         .orange-glow { text-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.3); }
 
-        /* Podium Effects */
         .podium-gold { background: linear-gradient(135deg, #846404 0%, #f6e27a 50%, #846404 100%); animation: shimmer 3s linear infinite; color: #422a02; border: 1px solid #ffd700; }
         .podium-silver { background: linear-gradient(135deg, #3d4349 0%, #aeb5bc 50%, #3d4349 100%); animation: shimmer 4s linear infinite; color: #1a202c; border: 1px solid #cbd5e0; }
         .podium-bronze { background: linear-gradient(135deg, #4b2c20 0%, #c48660 50%, #4b2c20 100%); animation: shimmer 5s linear infinite; color: #2d1a12; border: 1px solid #d69e2e; }
         @keyframes shimmer { 0% {background-position: 0% 50%} 100% {background-position: 100% 50%} }
 
-        /* HIGH CONTRAST SCROLLBARS */
+        /* iOS SMOOTH SCROLLING FIXES */
         .smooth-scroll {
-            -webkit-overflow-scrolling: touch;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Critical for iPhone */
+            overscroll-behavior-y: contain;
             touch-action: pan-y;
         }
         
-        ::-webkit-scrollbar { width: 14px; display: block; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); }
-        ::-webkit-scrollbar-thumb { 
-            background-color: #fbbf24; /* Amber-400 */
-            border-radius: 7px; 
-            border: 3px solid rgba(0,0,0,0.4); 
-        }
-        ::-webkit-scrollbar-thumb:hover { background-color: #f59e0b; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
     </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-hidden">
+<!-- Use h-[100dvh] for Dynamic Viewport Height on Mobile -->
+<body class="bg-slate-900 text-white h-[100dvh] flex flex-col overflow-hidden">
 
-    <!-- HEADER -->
+    <!-- HEADER (Fixed Height) -->
     <div class="bg-slate-900 border-b border-slate-700 p-4 shadow-xl z-20 flex-shrink-0">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-start">
@@ -64,7 +57,6 @@
                 </div>
             </div>
             
-            <!-- SPONSOR AREA -->
             <div class="w-full md:w-auto" id="sponsorArea">
                 <div class="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-600 rounded-xl p-4 flex flex-col items-center md:items-end shadow-2xl relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
@@ -78,15 +70,13 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="flex-grow p-4 overflow-hidden relative h-0">
+    <!-- MAIN CONTENT (Flex Grow + iOS Scroll Fixes) -->
+    <div class="flex-grow p-4 overflow-hidden relative h-0 min-h-0">
         
-        <!-- Waiting Message (Hidden by default) -->
         <div id="waitingMessage" class="hidden absolute inset-0 flex items-center justify-center z-0">
             <div class="text-center">
                 <div class="text-4xl animate-bounce mb-4">🏁</div>
                 <h2 class="text-2xl font-bold text-slate-500">Waiting for Tournament Start</h2>
-                <p class="text-slate-600 text-sm mt-2 font-mono">Heats are being generated...</p>
             </div>
         </div>
 
@@ -101,8 +91,9 @@
                     </div>
                     <span id="sprintRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
+                <!-- iOS FIX: smooth-scroll + min-h-0 -->
                 <div id="sprintContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
-                    <!-- Content Injected Here -->
+                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
 
@@ -115,15 +106,16 @@
                     </div>
                     <span id="keirinRound" class="text-xs bg-black/40 px-3 py-1 rounded-full font-mono border border-white/10">Round -</span>
                 </div>
+                <!-- iOS FIX: smooth-scroll + min-h-0 -->
                 <div id="keirinContainer" class="p-4 space-y-4 flex-grow relative smooth-scroll min-h-0">
-                    <!-- Content Injected Here -->
+                    <div class="text-center text-slate-500 py-20 animate-pulse font-mono">Waiting for race data...</div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- FOOTER -->
+    <!-- FOOTER (Fixed Height) -->
     <div class="bg-black border-t-4 border-orange-600 relative z-30 flex-shrink-0">
         <div class="absolute left-0 top-0 bottom-0 bg-orange-600 text-white font-black text-xs px-2 flex items-center z-10 shadow-lg uppercase tracking-widest writing-vertical-lr sm:writing-horizontal-tb">Sponsors</div>
         <div class="marquee-container py-3 bg-gradient-to-b from-slate-900 to-black">
@@ -135,7 +127,7 @@
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-orange-500 mr-2 text-2xl">■</span> LOOK CYCLE</span>
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-green-500 mr-2 text-2xl">❖</span> VELODROME SHOP</span>
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-purple-500 mr-2 text-2xl">★</span> KASK</span>
-                <!-- Duplicate for loop -->
+                <!-- Duplicate -->
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-yellow-500 mr-2 text-2xl">⚡</span> WATTSHOP</span>
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-red-600 mr-2 text-2xl">●</span> MAVIC</span>
                 <span class="text-xl font-bold text-slate-300 flex items-center"><span class="text-white mr-2 text-2xl">🚲</span> DOLAN</span>
@@ -171,7 +163,7 @@
             }
         }
 
-        // --- SCROLLING ---
+        // --- AUTO SCROLL LOGIC ---
         let lastUpdate = Date.now();
         let scrollInterval = null;
         let userInteracting = false;
@@ -192,7 +184,7 @@
             const containers = [document.getElementById('sprintContainer'), document.getElementById('keirinContainer')];
             scrollInterval = setInterval(() => {
                 containers.forEach(el => {
-                    if(el && el.offsetParent !== null && el.scrollHeight > el.clientHeight) { // Only scroll visible
+                    if(el && el.offsetParent !== null && el.scrollHeight > el.clientHeight) { 
                         el.scrollTop += 1; 
                         if(el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
                              if(!el.isResetting) {
@@ -232,13 +224,11 @@
             } else {
                 wait.classList.add('hidden');
                 if (sHidden || kHidden) {
-                    // Single column mode: Center it, max width
                     grid.classList.remove('lg:grid-cols-2');
-                    grid.classList.add('max-w-4xl'); // 4xl creates a nice single column width
+                    grid.classList.add('max-w-4xl'); 
                 } else {
-                    // Two column mode
                     grid.classList.add('lg:grid-cols-2');
-                    grid.classList.remove('max-w-4xl'); // Allow full width expansion
+                    grid.classList.remove('max-w-4xl'); 
                 }
             }
         }
@@ -249,14 +239,12 @@
                 const data = snap.val();
                 const col = document.getElementById(colId);
 
-                // HIDE COLUMN IF NO DATA
                 if(!data || !data.heats) {
                     col.classList.add('hidden');
                     updateLayout();
                     return;
                 }
                 
-                // SHOW COLUMN
                 col.classList.remove('hidden');
                 updateLayout();
 
